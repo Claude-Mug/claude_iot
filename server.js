@@ -1,28 +1,37 @@
-const express = require("express");
-const bodyParser = require("body-parser");
-const cors = require("cors");
-
+// server.js
+const express = require('express');
 const app = express();
-app.use(cors());
-app.use(bodyParser.json());
+const port = process.env.PORT || 10000;
 
+// Middleware pour lire le JSON
+app.use(express.json());
+
+// --- Route d'accueil ---
+app.get('/', (req, res) => {
+  res.send('✅ Serveur Render opérationnel !');
+});
+
+// --- Exemple de commande (pour ton ESP32) ---
 let lastCommand = "aucune_commande";
 
-// --- Endpoint pour récupérer la dernière commande ---
-app.get("/last_command", (req, res) => {
+// Endpoint pour obtenir la dernière commande
+app.get('/last_command', (req, res) => {
   res.send(lastCommand);
 });
 
-// --- Endpoint pour définir une nouvelle commande ---
-app.post("/set_command", (req, res) => {
-  if (req.body.command) {
-    lastCommand = req.body.command.trim();
-    console.log("✅ Nouvelle commande :", lastCommand);
-    res.send("Commande mise à jour !");
+// Endpoint pour mettre à jour la commande (ex. depuis ton appli web)
+app.post('/set_command', (req, res) => {
+  const { command } = req.body;
+  if (command) {
+    lastCommand = command;
+    console.log("Nouvelle commande :", command);
+    res.json({ success: true, command });
   } else {
-    res.status(400).send("Commande manquante !");
+    res.status(400).json({ success: false, message: "Aucune commande reçue" });
   }
 });
 
-const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => console.log(`🚀 Serveur actif sur le port ${PORT}`));
+app.listen(port, () => {
+  console.log(`🚀 Serveur actif sur le port ${port}`);
+});
+
