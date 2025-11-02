@@ -1,37 +1,73 @@
 // server.js
-const express = require('express');
+import express from 'express';
+import pkg from 'pg';
+import cors from 'cors';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const { Pool } = pkg;
 const app = express();
 const port = process.env.PORT || 10000;
 
-// Middleware pour lire le JSON
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Middleware
+app.use(cors());
 app.use(express.json());
+app.use(express.static(path.join(__dirname, 'public')));
 
-// --- Route d'accueil ---
-app.get('/', (req, res) => {
-  res.send('✅ Serveur Render opérationnel !');
+// --- Configuration PostgreSQL (Render) ---
+const pool = new Pool({
+  user: 'claude_iot_db_user',
+  host: 'dpg-d42gp2ur433s73dl8hm0-a.oregon-postgres.render.com',
+  database: 'claude_iot_db',
+  password: '7z7ZtHOj71CuPg1GhvZZFOx4FtjjneB2',
+  port: 5432,
+  ssl: { rejectUnauthorized: false },
 });
 
-// --- Exemple de commande (pour ton ESP32) ---
-let lastCommand = "aucune_commande";
+// --- Initialisation de la table ---
+async function initDb() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS commandes (
+      id SERIAL PRIMARY KEY,
+      command VARCHAR(255) NOT NULL,
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+  console.log("✅ Table 'commandes' prête !");
+}
 
-// Endpoint pour obtenir la dernière commande
-app.get('/last_command', (req, res) => {
-  res.send(lastCommand);
-});
-
-// Endpoint pour mettre à jour la commande (ex. depuis ton appli web)
-app.post('/set_command', (req, res) => {
-  const { command } = req.body;
-  if (command) {
-    lastCommand = command;
-    console.log("Nouvelle commande :", command);
-    res.json({ success: true, command });
-  } else {
-    res.status(400).json({ success: false, message: "Aucune commande reçue" });
+// --- Routes API ---
+app.get('/api/commandes', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM commandes ORDER BY id DESC');
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Erreur serveur');
   }
 });
 
-app.listen(port, () => {
-  console.log(`🚀 Serveur actif sur le port ${port}`);
+app.post('/api/commandes', async (req, res) => {
+  const { command } = req.body;
+  if (!command) return res.status(400).json({ message: "Commande manquante" });
+  try {
+    await pool.query('INSERT INTO commandes (command) VALUES ($1)', [command]);
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Erreur serveur');
+  }
 });
 
+// --- Route principale (interface web) ---
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+app.listen(port, async () => {
+  await initDb();
+  console.log(`🚀 Serveur actif sur le port ${port}`);
+});
