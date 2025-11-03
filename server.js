@@ -39,12 +39,30 @@ async function initDb() {
   }
 }
 
+// === Gestion temporaire des messages (en mémoire) ===
+let messages = [];
+const MAX_MESSAGES = 50; // garder les 50 derniers messages maximum
+const MESSAGE_EXPIRATION_MS = 15 * 60 * 1000; // 15 minutes
+
+// Nettoyage automatique des messages anciens
+setInterval(() => {
+  const now = Date.now();
+  const beforeClean = messages.length;
+  messages = messages.filter(
+    (msg) => now - new Date(msg.timestamp).getTime() < MESSAGE_EXPIRATION_MS
+  );
+  const afterClean = messages.length;
+  if (beforeClean !== afterClean) {
+    console.log(`🧹 Nettoyage mémoire : ${beforeClean - afterClean} message(s) supprimé(s)`);
+  }
+}, 60 * 1000); // vérifie chaque minute
+
 // === Configuration des chemins pour le client (interface web React) ===
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 app.use(express.static(path.join(__dirname, "client")));
 
-// === Route d’accueil (affiche la page principale) ===
+// === Route d’accueil (interface web) ===
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "client", "commandes.html"));
 });
@@ -73,9 +91,7 @@ app.get("/check_table", async (req, res) => {
 // === Récupérer toutes les commandes ===
 app.get("/commands", async (req, res) => {
   try {
-    const result = await pool.query(
-      "SELECT * FROM commandes ORDER BY id DESC;"
-    );
+    const result = await pool.query("SELECT * FROM commandes ORDER BY id DESC;");
     res.json(result.rows);
   } catch (err) {
     console.error("Erreur lors de la récupération :", err);
@@ -86,9 +102,7 @@ app.get("/commands", async (req, res) => {
 // === Récupérer la dernière commande ===
 app.get("/last_command", async (req, res) => {
   try {
-    const result = await pool.query(
-      "SELECT command FROM commandes ORDER BY id DESC LIMIT 1"
-    );
+    const result = await pool.query("SELECT command FROM commandes ORDER BY id DESC LIMIT 1");
     if (result.rows.length > 0) {
       res.send(result.rows[0].command);
     } else {
@@ -105,9 +119,7 @@ app.post("/set_command", async (req, res) => {
   const { command } = req.body;
 
   if (!command) {
-    return res
-      .status(400)
-      .json({ success: false, message: "Aucune commande reçue" });
+    return res.status(400).json({ success: false, message: "Aucune commande reçue" });
   }
 
   try {
@@ -116,10 +128,43 @@ app.post("/set_command", async (req, res) => {
     res.json({ success: true, command });
   } catch (err) {
     console.error("Erreur lors de l’insertion :", err);
-    res
-      .status(500)
-      .json({ success: false, message: "Erreur lors de l’insertion" });
+    res.status(500).json({ success: false, message: "Erreur lors de l’insertion" });
   }
+});
+
+// === 📡 Réception des messages venant du microcontrôleur ESP32 ===
+app.post("/esp_message", (req, res) => {
+  const { message } = req.body;
+  if (!message) {
+    return res.status(400).json({ success: false, message: "Message manquant" });
+  }
+
+  const newMsg = {
+    id: messages.length + 1,
+    message,
+    timestamp: new Date().toISOString(),
+  };
+
+  messages.unshift(newMsg);
+  if (messages.length > MAX_MESSAGES) messages.pop();
+
+  console.log("📥 Message reçu de l'ESP :", message);
+  res.json({ success: true, message: "Message enregistré en mémoire", data: newMsg });
+});
+
+// === 📱 Récupération des messages côté APK ===
+app.get("/messages", (req, res) => {
+  res.json(messages);
+});
+
+// === 🩺 Route de diagnostic du serveur ===
+app.get("/status", async (req, res) => {
+  const { rows } = await pool.query("SELECT COUNT(*) FROM commandes");
+  res.json({
+    commandes_en_base: rows[0].count,
+    messages_en_memoire: messages.length,
+    memoire_utilisee: (process.memoryUsage().heapUsed / 1024 / 1024).toFixed(2) + " MB",
+  });
 });
 
 // === Route fallback pour React Router / SPA ===
