@@ -1,6 +1,8 @@
 // ===== server.js =====
 import express from "express";
 import cors from "cors";
+import path from "path";
+import { fileURLToPath } from "url";
 import bodyParser from "body-parser";
 import pool from "./config/db.js";
 
@@ -96,10 +98,17 @@ app.get("/status", async (req, res) => {
   }
 });
 
-// === 🌐 Route fallback pour interface web (facultative) ===
-app.get("*", (req, res) => {
-  res.send("Serveur IoT en cours d'exécution 🚀");
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// === Middleware pour servir les fichiers statiques ===
+app.use(express.static(__dirname));
+
+// === Route principale (affiche ton interface web) ===
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "commandes.html"));
 });
+
 
 // === 🚀 Lancement du serveur ===
 app.listen(port, async () => {
