@@ -52,11 +52,48 @@ app.post("/set_command", async (req, res) => {
     return res.status(400).json({ success: false, message: "Champ 'command' manquant" });
 
   try {
-    await pool.query("INSERT INTO commandes (command) VALUES ($1)", [command]);
-    console.log(`✅ Commande enregistrée : ${command}`);
+    // Vérifier si la commande existe déjà
+    const exists = await pool.query('SELECT id FROM commandes WHERE command = $1', [command]);
+
+    if (exists.rows.length > 0) {
+      // Si existe → mettre à jour la date
+      await pool.query('UPDATE commandes SET created_at = CURRENT_TIMESTAMP WHERE command = $1', [command]);
+      console.log(`♻️ Commande "${command}" mise à jour.`);
+    } else {
+      // Supprimer la plus ancienne si +50 commandes
+      const countResult = await pool.query('SELECT COUNT(*) FROM commandes');
+      const count = parseInt(countResult.rows[0].count);
+
+      if (count >= 50) {
+        await pool.query(
+          'DELETE FROM commandes WHERE id = (SELECT id FROM commandes ORDER BY created_at ASC LIMIT 1)'
+        );
+        console.log(`🧹 Suppression automatique dʼune commande ancienne`);
+      }
+      // Insérer la nouvelle commande
+      await pool.query(
+        'INSERT INTO commandes (command) VALUES ($1)',
+        [command]
+      );
+      console.log('✅ Nouvelle commande ajoutée :', command);
+    }
+
     res.json({ success: true });
   } catch (error) {
     console.error("Erreur /set_command :", error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// === 🔹 Liste des commandes ===
+app.get("/commands", async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      'SELECT * FROM commandes ORDER BY created_at DESC'
+    );
+    res.json(rows);
+  } catch (error) {
+    console.error("Erreur /commands :", error.message);
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -65,7 +102,7 @@ app.post("/set_command", async (req, res) => {
 app.get("/last_command", async (req, res) => {
   try {
     const { rows } = await pool.query(
-      "SELECT command FROM commandes ORDER BY id DESC LIMIT 1"
+      "SELECT command FROM commandes ORDER BY created_at DESC LIMIT 1"
     );
     if (rows.length === 0)
       return res
@@ -83,7 +120,7 @@ app.get("/last_command", async (req, res) => {
 app.get("/last_command_json", async (req, res) => {
   try {
     const { rows } = await pool.query(
-      "SELECT * FROM commandes ORDER BY id DESC LIMIT 1"
+      "SELECT * FROM commandes ORDER BY created_at DESC LIMIT 1"
     );
     if (rows.length === 0)
       return res.json({ success: false, message: "Aucune commande trouvée" });
@@ -138,6 +175,7 @@ app.get("/status", async (req, res) => {
       routes_disponibles: [
         "/home",
         "/set_command",
+        "/commands",
         "/last_command",
         "/last_command_json",
         "/esp_message",
