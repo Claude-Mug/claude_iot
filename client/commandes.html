@@ -5,29 +5,61 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Administration Claude-IoT</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f9; }
-        .container { max-width: 1000px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        h1, h2 { color: #333; border-bottom: 2px solid #ccc; padding-bottom: 10px; margin-top: 20px; }
+        :root {
+            --primary-color: #007bff;
+            --secondary-color: #6c757d;
+            --success-color: #28a745;
+            --error-color: #dc3545;
+            --bg-light: #f8f9fa;
+            --bg-white: #ffffff;
+            --border-radius: 8px;
+        }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 20px; background-color: var(--bg-light); color: #333; }
+        .container { max-width: 1200px; margin: auto; background: var(--bg-white); padding: 30px; border-radius: var(--border-radius); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        h1, h2 { color: var(--primary-color); border-bottom: 2px solid #e9ecef; padding-bottom: 10px; margin-top: 25px; }
         .form-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; font-weight: bold; }
-        input[type="text"], input[type="password"], textarea { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-        button { background-color: #007bff; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; margin-right: 10px; transition: background-color 0.3s; }
-        button:hover { background-color: #0056b3; }
-        .response { margin-top: 15px; padding: 15px; background-color: #e9ecef; border-radius: 4px; white-space: pre-wrap; word-break: break-all; }
-        .error { color: red; font-weight: bold; }
-        .success { color: green; font-weight: bold; }
-        #auth-form { padding: 30px; background-color: #ffe0b2; border-radius: 8px; }
+        label { display: block; margin-bottom: 5px; font-weight: 600; }
+        input[type="text"], input[type="password"], textarea { 
+            width: 100%; padding: 10px; border: 1px solid #ced4da; border-radius: 4px; box-sizing: border-box; 
+            transition: border-color 0.3s; 
+        }
+        input:focus, textarea:focus { border-color: var(--primary-color); outline: none; }
+        button { 
+            background-color: var(--primary-color); color: white; padding: 10px 18px; border: none; border-radius: 4px; 
+            cursor: pointer; margin-right: 10px; transition: background-color 0.3s, transform 0.1s; font-weight: 500;
+        }
+        button:hover { background-color: #0056b3; transform: translateY(-1px); }
+        .delete-btn { background-color: var(--error-color); }
+        .delete-btn:hover { background-color: #bd2130; }
+        
+        .response { 
+            margin-top: 15px; padding: 15px; background-color: #e9f2ff; border-left: 5px solid var(--primary-color); 
+            border-radius: 4px; white-space: pre-wrap; word-break: break-all; 
+        }
+        .error { color: var(--error-color); font-weight: bold; }
+        .success { color: var(--success-color); font-weight: bold; }
+        
+        /* Styles d'Authentification */
+        #auth-form { padding: 30px; background-color: #fff3cd; border-radius: var(--border-radius); border: 1px solid #ffeeba; }
+        #auth-form button { background-color: var(--success-color); }
+        #auth-form button:hover { background-color: #1e7e34; }
         #app-content { display: none; }
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        th { background-color: #f2f2f2; }
+        
+        /* Styles de Tableau */
+        table { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 15px; border: 1px solid #dee2e6; border-radius: var(--border-radius); overflow: hidden; }
+        th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #dee2e6; }
+        th { background-color: var(--primary-color); color: white; font-weight: 600; text-transform: uppercase; }
+        tr:last-child td { border-bottom: none; }
+        tr:nth-child(even) { background-color: #f2f2f2; }
+        .latest-row { background-color: #ffeaa7 !important; font-weight: bold; border-left: 4px solid orange; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>🔒 Administration Claude-IoT</h1>
+    <h1>🛰️ Administration Claude-IoT</h1>
 
+    <!-- Formulaire d'Authentification -->
     <div id="auth-form">
         <h2>Authentification Requise</h2>
         <div class="form-group">
@@ -42,11 +74,13 @@
         <p id="auth-status" class="error"></p>
     </div>
 
+    <!-- Contenu de l'Application (Visible après connexion) -->
     <div id="app-content">
 
+        <!-- Envoi de Commande -->
         <h2>📨 1. Envoyer une Nouvelle Commande (Vers l'ESP)</h2>
         <div class="form-group">
-            <label for="command-input">Commande (Ex: LED:ON, Ventilateur:OFF):</label>
+            <label for="command-input">Commande (Ex: LED:ON, Ventilateur:OFF) :</label>
             <input type="text" id="command-input" placeholder="ventilateur -> ON" required>
         </div>
         <button onclick="sendCommand()">Envoyer et Enregistrer</button>
@@ -54,32 +88,43 @@
         
         <hr>
 
-        <h2>📜 2. Historique des Commandes</h2>
-        <button onclick="getAllCommands()">Afficher toutes les Commandes</button>
-        <button onclick="getAndDisplayLastCommand()">Dernière Commande (Texte)</button>
-        <div id="all-commands-display" class="response">Aucune donnée affichée.</div>
+        <!-- Affichage des Commandes -->
+        <h2>📜 2. Historique des Commandes (Max 50)</h2>
+        <button onclick="getAllCommands()">Rafraîchir les Commandes</button>
+        <button class="delete-btn" onclick="clearCommands()">Effacer TOUT l'Historique</button>
+        <div id="all-commands-display" class="response">
+            <p>Cliquez sur "Rafraîchir les Commandes" pour charger les données de la base.</p>
+        </div>
 
         <hr>
 
+        <!-- Affichage des Messages ESP (RAM) -->
         <h2>📡 3. Messages Récents des Dispositifs ESP (RAM)</h2>
-        <p>Ces messages sont nettoyés toutes les 15 minutes.</p>
-        <button onclick="getEspMessages()">Afficher les Messages ESP</button>
-        <div id="esp-messages-display" class="response">Aucune donnée affichée.</div>
+        <p>Ces messages sont des états éphémères, nettoyés toutes les 15 minutes.</p>
+        <button onclick="getEspMessages()">Rafraîchir les Messages ESP</button>
+        <div id="esp-messages-display" class="response">
+             <p>Aucun message affiché.</p>
+        </div>
 
         <hr>
 
+        <!-- Statut du Serveur et Infos DB -->
         <h2>📊 4. Statut du Serveur et Infos Routes</h2>
-        <button onclick="getServerStatus()">Afficher le Statut du Serveur</button>
-        <div id="status-response" class="response"></div>
+        <button onclick="getServerStatus()">Afficher/Rafraîchir le Statut</button>
+        <div id="status-response" class="response">
+            <p>Affiche les informations système et l'état de la connexion DB.</p>
+        </div>
 
     </div>
 </div>
 
 <script>
-    // --- Authentification Hardcodée ---
+    // --- Configuration ---
     const VALID_USERNAME = 'Claude-Mug';
     const VALID_PASSWORD = 'Moscouw03';
     let isAuthenticated = false;
+
+    // --- Authentification ---
 
     function handleLogin() {
         const username = document.getElementById('username').value;
@@ -92,17 +137,22 @@
             statusElement.className = 'success';
             document.getElementById('auth-form').style.display = 'none';
             document.getElementById('app-content').style.display = 'block';
+            
+            // Charge les données par défaut au succès de la connexion
+            getAllCommands();
+            getServerStatus();
         } else {
             statusElement.textContent = 'Erreur: Nom d\'utilisateur ou mot de passe incorrect.';
             statusElement.className = 'error';
         }
     }
 
-    // Sécurisation basique des requêtes (non-critique ici)
+    // --- Fonctions Utilitaires ---
+
     async function securedFetch(url, options = {}) {
         if (!isAuthenticated) {
-            alert("Erreur d'authentification. Veuillez vous reconnecter.");
-            // Forcer la déconnexion visuelle
+            console.error("Non authentifié.");
+            alert("Session expirée ou non authentifiée. Veuillez vous reconnecter.");
             document.getElementById('auth-form').style.display = 'block';
             document.getElementById('app-content').style.display = 'none';
             return { ok: false, status: 401 };
@@ -111,103 +161,146 @@
         try {
             const response = await fetch(url, options);
             if (!response.ok) {
-                 // Gère les erreurs HTTP côté serveur
-                return { ok: false, status: response.status, text: await response.text(), json: null };
+                const errorText = await response.text();
+                return { ok: false, status: response.status, text: errorText };
             }
-            return { ok: true, status: response.status, text: await response.text(), json: response.headers.get('content-type')?.includes('application/json') ? await response.json() : null };
+            // Tente de parser JSON, sinon retourne null pour JSON
+            const contentType = response.headers.get('content-type');
+            let json = null;
+            let text = '';
+            if (contentType && contentType.includes('application/json')) {
+                json = await response.json();
+            } else {
+                text = await response.text();
+            }
+            return { ok: true, status: response.status, text: text, json: json };
         } catch (error) {
-            console.error('Erreur réseau:', error);
-            return { ok: false, status: 0, text: `Erreur réseau: ${error.message}`, json: null };
+            console.error('Erreur réseau ou Fetch:', error);
+            return { ok: false, status: 0, text: `Erreur réseau: ${error.message}` };
         }
     }
 
-    // --- Fonctions d'Interaction avec les Routes ---
-
-    // Fonction fictive (non implémentée dans les routes actuelles) pour effacer la DB
-    function clearCommands() {
-        alert("La fonction d'effacement de la base de données n'est pas encore implémentée sur le serveur.");
+    function formatTime(timestamp) {
+        if (!timestamp) return 'N/A';
+        return new Date(timestamp).toLocaleString('fr-FR');
     }
-    
-    // 1. Envoi de Commande (vers le serveur pour être stockée)
+
+    // --- 1. Envoi de Commande ---
+
     async function sendCommand() {
-        const commandValue = document.getElementById('command-input').value;
+        const commandValue = document.getElementById('command-input').value.trim();
         const responseDiv = document.getElementById('command-response');
+        responseDiv.innerHTML = 'Envoi...';
+        
         if (!commandValue) {
             responseDiv.innerHTML = '<span class="error">Veuillez entrer une commande.</span>';
             return;
         }
 
-        // NOTE: Ceci est une simulation. Dans la réalité, une commande doit être transmise à l'ESP.
-        // Ici, nous simulons une route POST qui ajoute la commande à la DB.
-        const response = await securedFetch('/commande_post', { // Supposons que vous créez une route POST /commande_post qui ajoute à la DB
+        const response = await securedFetch('/commande_post', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ command: commandValue })
         });
 
-        if (response.ok) {
-            responseDiv.innerHTML = `<span class="success">✅ Commande enregistrée : ${commandValue}</span>`;
-            // Pour l'exemple, nous allons simuler l'envoi de la commande à une route fictive
+        if (response.ok && response.json.success) {
+            responseDiv.innerHTML = `<span class="success">✅ Commande enregistrée/mise à jour : ${commandValue}. Statut: ${response.json.message}</span>`;
+            // Rafraîchit le tableau des commandes après l'envoi
+            getAllCommands();
         } else {
-            responseDiv.innerHTML = `<span class="error">❌ Erreur d'enregistrement (Statut: ${response.status}) : ${response.text}</span>`;
+            const msg = response.json ? response.json.message : response.text;
+            responseDiv.innerHTML = `<span class="error">❌ Erreur d'enregistrement (Statut: ${response.status}) : ${msg}</span>`;
         }
     }
+    
+    // --- 2. Historique des Commandes (Affichage et Suppression) ---
 
-    // 2. Affichage des commandes
+    async function deleteCommand(commandId) {
+        if (!confirm(`Êtes-vous sûr de vouloir supprimer la commande ID ${commandId} ?`)) {
+            return;
+        }
+
+        // NOTE: Cette route DELETE doit être implémentée dans routesProvider.js
+        const deleteRoute = `/commande/${commandId}`; 
+        
+        // Simuler une requête DELETE, car la route n'est pas encore implémentée
+        const responseDiv = document.getElementById('all-commands-display');
+        responseDiv.innerHTML = `<p class="error">Fonction de suppression non implémentée côté serveur (route ${deleteRoute}).</p>`;
+        
+        /*
+        // Code à utiliser quand la route DELETE sera prête:
+        const response = await securedFetch(deleteRoute, {
+            method: 'DELETE'
+        });
+
+        if (response.ok) {
+            alert(`Commande ID ${commandId} supprimée avec succès!`);
+            getAllCommands(); // Rafraîchir le tableau
+        } else {
+            alert(`Erreur lors de la suppression (Statut: ${response.status}).`);
+        }
+        */
+    }
+
+    async function clearCommands() {
+        // NOTE: Cette fonctionnalité n'est pas encore implémentée (route DELETE globale requise)
+        alert("La fonctionnalité d'effacer TOUT l'historique n'est pas implémentée. Vous devez ajouter une route DELETE spécifique (ex: /all_commands) au serveur.");
+    }
+
+
     async function getAllCommands() {
         const responseDiv = document.getElementById('all-commands-display');
-        responseDiv.textContent = 'Chargement...';
+        responseDiv.innerHTML = 'Chargement des commandes...';
 
         const response = await securedFetch('/all_commands');
 
         if (response.ok && response.json) {
             const data = response.json;
-            if (data.success && data.commands.length > 0) {
-                let html = '<table><tr><th>ID</th><th>Commande</th><th>Date</th></tr>';
-                data.commands.forEach(cmd => {
-                    const date = new Date(cmd.created_at).toLocaleString('fr-FR');
-                    html += `<tr><td>${cmd.id}</td><td>${cmd.command}</td><td>${date}</td></tr>`;
+            if (data.success && data.commands && data.commands.length > 0) {
+                let html = `<h4>Total Commandes: ${data.count} (Max 50)</h4>`;
+                html += '<table><thead><tr><th>ID</th><th>Commande</th><th>Date de Demande</th><th>Action</th></tr></thead><tbody>';
+                
+                data.commands.forEach((cmd, index) => {
+                    const rowClass = index === 0 ? 'latest-row' : ''; // Dernière commande est la première (tri DESC)
+                    html += `<tr class="${rowClass}">
+                                <td>${cmd.id}</td>
+                                <td>${cmd.command}</td>
+                                <td>${formatTime(cmd.created_at)}</td>
+                                <td>
+                                    <button class="delete-btn" onclick="deleteCommand(${cmd.id})">Supprimer</button>
+                                </td>
+                             </tr>`;
                 });
-                html += '</table>';
+                html += '</tbody></table>';
                 responseDiv.innerHTML = html;
             } else {
-                responseDiv.innerHTML = '<span class="error">Aucune commande trouvée.</span>';
+                responseDiv.innerHTML = '<span class="error">Aucune commande trouvée dans la base de données.</span>';
             }
         } else {
-            responseDiv.innerHTML = `<span class="error">❌ Erreur lors de la récupération des commandes (Statut: ${response.status}).</span>`;
+            responseDiv.innerHTML = `<span class="error">❌ Erreur lors de la récupération des commandes (Statut: ${response.status}). ${response.text || ''}</span>`;
         }
     }
     
-    // Afficher la dernière commande (Texte Brut)
-    async function getAndDisplayLastCommand() {
-        const responseDiv = document.getElementById('all-commands-display');
-        responseDiv.textContent = 'Chargement de la dernière commande...';
+    // --- 3. Affichage des messages ESP (RAM) ---
 
-        const response = await securedFetch('/last_command'); // Route texte brut
-
-        if (response.ok) {
-            responseDiv.innerHTML = `<p><strong>Dernière Commande (Texte Brut):</strong></p><pre>${response.text}</pre>`;
-        } else {
-            responseDiv.innerHTML = `<span class="error">❌ Erreur lors de la récupération de la dernière commande (Statut: ${response.status}).</span>`;
-        }
-    }
-
-    // 3. Affichage des messages ESP
     async function getEspMessages() {
         const responseDiv = document.getElementById('esp-messages-display');
-        responseDiv.textContent = 'Chargement...';
+        responseDiv.innerHTML = 'Chargement des messages RAM...';
 
         const response = await securedFetch('/messages');
 
         if (response.ok && response.json) {
             const data = response.json;
             if (data.success && data.messages.length > 0) {
-                let html = `<h4>Total Messages: ${data.count}</h4><table><tr><th>Device ID</th><th>Message</th><th>Date</th></tr>`;
+                let html = `<h4>Total Messages en RAM: ${data.count}</h4><table><thead><tr><th>Device ID</th><th>Message</th><th>Date/Heure</th></tr></thead><tbody>`;
                 data.messages.forEach(msg => {
-                    const date = new Date(msg.created_at).toLocaleTimeString('fr-FR');
-                    html += `<tr><td>${msg.device_id}</td><td>${msg.message}</td><td>${date}</td></tr>`;
+                    html += `<tr>
+                                <td>${msg.device_id}</td>
+                                <td>${msg.message}</td>
+                                <td>${formatTime(msg.created_at)}</td>
+                            </tr>`;
                 });
-                html += '</table>';
+                html += '</tbody></table>';
                 responseDiv.innerHTML = html;
             } else {
                 responseDiv.innerHTML = '<span class="error">Aucun message ESP en RAM.</span>';
@@ -217,24 +310,30 @@
         }
     }
 
-    // 4. Affichage du Statut du Serveur
+    // --- 4. Affichage du Statut du Serveur ---
+
     async function getServerStatus() {
         const responseDiv = document.getElementById('status-response');
-        responseDiv.textContent = 'Chargement...';
+        responseDiv.innerHTML = 'Vérification du statut...';
 
         const response = await securedFetch('/status');
 
         if (response.ok && response.json) {
             const data = response.json;
+            let routesList = data.routes_available.map(r => `<li><code>${r}</code></li>`).join('');
+            
+            // Calcul de la capacité RAM utilisée (estimation fictive pour l'exemple)
+            const ramUsage = Math.floor(Math.random() * 80) + 20; // Entre 20% et 100%
+            
             let html = `
                 <p><strong>Service:</strong> ${data.service}</p>
                 <p><strong>Statut:</strong> <span class="${data.status === 'online' ? 'success' : 'error'}">${data.status}</span></p>
                 <p><strong>Statut DB:</strong> ${data.db_status}</p>
-                <p><strong>Routes Disponibles (${data.routes_available.length}):</strong></p>
-                <ul>
-                    ${data.routes_available.map(r => `<li>${r}</li>`).join('')}
-                </ul>
-                <p><strong>Timestamp:</strong> ${data.timestamp}</p>
+                <p><strong>Capacité/RAM Utilisée (Simulation):</strong> ${ramUsage}%</p>
+                <p><strong>Timestamp:</strong> ${formatTime(data.timestamp)}</p>
+                
+                <h4>Routes Disponibles (${data.routes_available.length}):</h4>
+                <ul>${routesList}</ul>
             `;
             responseDiv.innerHTML = html;
         } else {
@@ -242,10 +341,8 @@
         }
     }
     
-    // Tente de se connecter au chargement pour un environnement de développement
-    window.onload = () => {
-        handleLogin(); // Tente de se connecter avec les valeurs par défaut
-    };
+    // Tente de se connecter au chargement 
+    window.onload = handleLogin;
 </script>
 
 </body>
