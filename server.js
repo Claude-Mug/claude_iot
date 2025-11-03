@@ -1,4 +1,4 @@
-// server.js
+// ===== server.js =====
 import express from "express";
 import pkg from "pg";
 import cors from "cors";
@@ -39,14 +39,14 @@ async function initDb() {
   }
 }
 
-// === Configuration du chemin pour les fichiers statiques (interface HTML simple) ===
+// === Configuration des chemins pour le client (interface web React) ===
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-app.use(express.static(path.join(__dirname, "public")));
+app.use(express.static(path.join(__dirname, "client")));
 
-// === Route d’accueil (affiche page HTML) ===
+// === Route d’accueil (affiche la page principale) ===
 app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
+  res.sendFile(path.join(__dirname, "client", "commandes.jsx"));
 });
 
 // === Vérification de la table ===
@@ -67,6 +67,19 @@ app.get("/check_table", async (req, res) => {
   } catch (error) {
     console.error("Erreur de vérification :", error);
     res.status(500).send("Erreur lors de la vérification de la table");
+  }
+});
+
+// === Récupérer toutes les commandes ===
+app.get("/commands", async (req, res) => {
+  try {
+    const result = await pool.query(
+      "SELECT * FROM commandes ORDER BY id DESC;"
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Erreur lors de la récupération :", err);
+    res.status(500).send("Erreur serveur");
   }
 });
 
@@ -107,6 +120,11 @@ app.post("/set_command", async (req, res) => {
       .status(500)
       .json({ success: false, message: "Erreur lors de l’insertion" });
   }
+});
+
+// === Route fallback pour React Router / SPA ===
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "client", "commandes.html"));
 });
 
 // === Lancement du serveur ===
