@@ -2,19 +2,38 @@
 <html lang="fr">
   <head>
     <meta charset="UTF-8" />
-    <title>IoT Commandes</title>
+    <title>🌐 IoT Dashboard – Commandes</title>
+
+    <!-- React & Babel -->
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+
+    <!-- Bootstrap -->
     <link
       href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
       rel="stylesheet"
     />
-  </head>
-  <body class="bg-light">
-    <div class="container py-4">
-      <h2 class="text-center mb-4">🌐 Interface IoT – Gestion des Commandes</h2>
 
+    <style>
+      body {
+        background: #f8f9fa;
+      }
+      .card {
+        border-radius: 12px;
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+      }
+      .btn-danger {
+        font-size: 0.85rem;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="container py-4">
+      <h2 class="text-center mb-4 fw-bold text-primary">
+        🌐 Tableau de bord IoT – Gestion des Commandes
+      </h2>
       <div id="root"></div>
     </div>
 
@@ -24,18 +43,43 @@
       function App() {
         const [commandes, setCommandes] = React.useState([]);
         const [newCommand, setNewCommand] = React.useState("");
+        const [stats, setStats] = React.useState({
+          total: 0,
+          last: "Aucune",
+          lastDate: "-",
+        });
 
-        // Charger les commandes au démarrage
+        // Charger les commandes + infos
+        const loadData = async () => {
+          try {
+            const res = await fetch(`${API_URL}/commands`);
+            const data = await res.json();
+            setCommandes(data);
+
+            if (data.length > 0) {
+              const last = data[data.length - 1];
+              setStats({
+                total: data.length,
+                last: last.command,
+                lastDate: new Date(last.created_at).toLocaleString("fr-FR"),
+              });
+            } else {
+              setStats({ total: 0, last: "Aucune", lastDate: "-" });
+            }
+          } catch (err) {
+            console.error("Erreur de chargement :", err);
+          }
+        };
+
         React.useEffect(() => {
-          fetch(`${API_URL}/commands`)
-            .then((res) => res.json())
-            .then((data) => setCommandes(data))
-            .catch((err) => console.error("Erreur chargement commandes :", err));
+          loadData();
+          const interval = setInterval(loadData, 10000); // auto-refresh
+          return () => clearInterval(interval);
         }, []);
 
         // Envoyer une commande
         const sendCommand = async () => {
-          if (!newCommand.trim()) return alert("Entrez une commande !");
+          if (!newCommand.trim()) return alert("⚠️ Entrez une commande !");
           try {
             const res = await fetch(`${API_URL}/set_command`, {
               method: "POST",
@@ -44,65 +88,114 @@
             });
             const data = await res.json();
             if (data.success) {
-              alert(`✅ Commande envoyée : ${data.command}`);
               setNewCommand("");
-              // Recharger les commandes
-              fetch(`${API_URL}/commands`)
-                .then((res) => res.json())
-                .then((data) => setCommandes(data));
+              loadData();
+            } else {
+              alert("❌ Erreur lors de l’envoi");
             }
           } catch (err) {
-            alert("Erreur d’envoi de la commande !");
+            alert("❌ Serveur injoignable !");
+          }
+        };
+
+        // Supprimer une commande
+        const deleteCommand = async (id) => {
+          if (!confirm("Voulez-vous vraiment supprimer cette commande ?")) return;
+          try {
+            const res = await fetch(`${API_URL}/delete_command/${id}`, {
+              method: "DELETE",
+            });
+            const data = await res.json();
+            if (data.success) loadData();
+            else alert("Erreur suppression !");
+          } catch (err) {
+            alert("Erreur réseau !");
           }
         };
 
         return (
           <div>
-            <div className="input-group mb-3">
+            {/* === Section Informations === */}
+            <div className="row mb-4">
+              <div className="col-md-4">
+                <div className="card text-center p-3">
+                  <h5>📦 Total Commandes</h5>
+                  <h3 className="text-primary">{stats.total}</h3>
+                </div>
+              </div>
+              <div className="col-md-4">
+                <div className="card text-center p-3">
+                  <h5>🕒 Dernière commande</h5>
+                  <p className="fw-bold">{stats.last}</p>
+                  <small className="text-muted">{stats.lastDate}</small>
+                </div>
+              </div>
+              <div className="col-md-4">
+                <div className="card text-center p-3">
+                  <h5>🔄 Actualisation</h5>
+                  <p className="text-success">Toutes les 10 secondes</p>
+                </div>
+              </div>
+            </div>
+
+            {/* === Formulaire d’ajout === */}
+            <div className="input-group mb-4">
               <input
                 type="text"
                 className="form-control"
-                placeholder="Entrer une commande (ex: allumer_led)"
+                placeholder="Entrez une commande (ex: allumer_led)"
                 value={newCommand}
                 onChange={(e) => setNewCommand(e.target.value)}
               />
               <button className="btn btn-primary" onClick={sendCommand}>
-                Envoyer
+                ➕ Envoyer
               </button>
             </div>
 
-            <h5>📋 Historique des commandes :</h5>
-            <table className="table table-striped">
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Commande</th>
-                  <th>Date / Heure</th>
-                </tr>
-              </thead>
-              <tbody>
-                {commandes.length > 0 ? (
-                  commandes.map((cmd) => (
-                    <tr key={cmd.id}>
-                      <td>{cmd.id}</td>
-                      <td>{cmd.command}</td>
-                      <td>
-                        {new Date(cmd.created_at).toLocaleString("fr-FR", {
-                          dateStyle: "short",
-                          timeStyle: "medium",
-                        })}
+            {/* === Tableau des commandes === */}
+            <div className="card p-3">
+              <h5>📋 Historique des commandes :</h5>
+              <table className="table table-hover mt-3">
+                <thead className="table-primary">
+                  <tr>
+                    <th>ID</th>
+                    <th>Commande</th>
+                    <th>Date / Heure</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {commandes.length > 0 ? (
+                    commandes.map((cmd) => (
+                      <tr key={cmd.id}>
+                        <td>{cmd.id}</td>
+                        <td>{cmd.command}</td>
+                        <td>
+                          {new Date(cmd.created_at).toLocaleString("fr-FR", {
+                            dateStyle: "short",
+                            timeStyle: "medium",
+                          })}
+                        </td>
+                        <td>
+                          <button
+                            className="btn btn-sm btn-danger"
+                            onClick={() => deleteCommand(cmd.id)}
+                          >
+                            🗑️ Supprimer
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan="4" className="text-center text-muted">
+                        Aucune commande enregistrée
                       </td>
                     </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="3" className="text-center">
-                      Aucune commande enregistrée
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         );
       }
