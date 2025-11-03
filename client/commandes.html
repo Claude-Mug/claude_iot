@@ -52,17 +52,15 @@
     <div id="root"></div>
 
     <script type="text/babel">
-      const API_URL = window.location.origin;
+      // 🟢 Lien fixe vers ton serveur Render
+      const API_URL = "https://claude-iot.onrender.com";
 
       function App() {
         const [authenticated, setAuthenticated] = React.useState(false);
         const [commandes, setCommandes] = React.useState([]);
         const [messages, setMessages] = React.useState([]);
         const [newCommand, setNewCommand] = React.useState("");
-        const [stats, setStats] = React.useState({
-          total: 0,
-          mem: "0 Mo",
-        });
+        const [stats, setStats] = React.useState({ total: 0, mem: "0 Mo" });
         const [routes, setRoutes] = React.useState([]);
 
         // === Authentification simple ===
@@ -76,25 +74,29 @@
           }
         };
 
-        // Charger les données
+        // === Chargement des données ===
         const loadData = async () => {
           try {
-            const resCmd = await fetch(`${API_URL}/commands`);
-            const cmdData = await resCmd.json();
+            const [cmdRes, msgRes, routeRes] = await Promise.all([
+              fetch(`${API_URL}/commands`),
+              fetch(`${API_URL}/messages`),
+              fetch(`${API_URL}/routes_info`)
+            ]);
+
+            const cmdData = await cmdRes.json();
+            const msgData = await msgRes.json();
+            const routeData = await routeRes.json();
+
             setCommandes(cmdData);
-
-            // Récupérer les messages temporaires
-            const resMsg = await fetch(`${API_URL}/messages`);
-            const msgData = await resMsg.json();
             setMessages(msgData);
+            setRoutes(routeData.routes || []);
 
-            // Récupérer les routes du serveur
-            const resRoutes = await fetch(`${API_URL}/routes_info`);
-            const routesData = await resRoutes.json();
-            setRoutes(routesData.routes);
-
-            // Calcul mémoire utilisée côté navigateur (simple approximation)
-            const memUsed = (performance.memory && performance.memory.usedJSHeapSize ? performance.memory.usedJSHeapSize : 0) / 1024 / 1024;
+            const memUsed =
+              (performance.memory && performance.memory.usedJSHeapSize
+                ? performance.memory.usedJSHeapSize
+                : 0) /
+              1024 /
+              1024;
 
             setStats({
               total: cmdData.length,
@@ -108,12 +110,12 @@
         React.useEffect(() => {
           if (authenticated) {
             loadData();
-            const interval = setInterval(loadData, 10000);
+            const interval = setInterval(loadData, 8000);
             return () => clearInterval(interval);
           }
         }, [authenticated]);
 
-        // === Envoyer une commande ===
+        // === Envoi d'une commande ===
         const sendCommand = async () => {
           if (!newCommand.trim()) return alert("⚠️ Entrez une commande !");
           try {
@@ -127,7 +129,7 @@
               setNewCommand("");
               loadData();
             } else {
-              alert("❌ Erreur d’envoi");
+              alert("❌ Erreur d’envoi : " + (data.message || "inconnue"));
             }
           } catch (err) {
             alert("❌ Serveur injoignable !");
@@ -154,7 +156,7 @@
               🌐 Tableau de bord IoT – Gestion des Commandes
             </h2>
 
-            {/* === Stats === */}
+            {/* === Statistiques === */}
             <div className="row mb-4">
               <div className="col-md-6">
                 <div className="card text-center p-3">
@@ -184,53 +186,58 @@
               </button>
             </div>
 
-            {/* === Commandes === */}
-            <div className="card p-3 mb-4">
-              <h5>📋 Commandes en mémoire :</h5>
-              <table className="table table-hover mt-3">
-                <thead className="table-primary">
-                  <tr>
-                    <th>#</th>
-                    <th>Commande</th>
-                    <th>Date / Heure</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {commandes.length > 0 ? (
-                    commandes.map((cmd) => (
-                      <tr key={cmd.id}>
-                        <td>{cmd.id}</td>
-                        <td>{cmd.command}</td>
-                        <td>
-                          {new Date(cmd.created_at).toLocaleString("fr-FR")}
-                        </td>
+            {/* === Commandes & Messages === */}
+            <div className="row">
+              <div className="col-md-6">
+                <div className="card p-3 mb-4">
+                  <h5>📋 Commandes enregistrées :</h5>
+                  <table className="table table-hover mt-3">
+                    <thead className="table-primary">
+                      <tr>
+                        <th>#</th>
+                        <th>Commande</th>
+                        <th>Date / Heure</th>
                       </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan="3" className="text-center text-muted">
-                        Aucune commande
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+                    </thead>
+                    <tbody>
+                      {commandes.length > 0 ? (
+                        commandes.map((cmd) => (
+                          <tr key={cmd.id}>
+                            <td>{cmd.id}</td>
+                            <td>{cmd.command}</td>
+                            <td>
+                              {new Date(cmd.created_at).toLocaleString("fr-FR")}
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan="3" className="text-center text-muted">
+                            Aucune commande
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
 
-            {/* === Messages === */}
-            <div className="card p-3 mb-4">
-              <h5>📨 Messages reçus (ESP → Serveur) :</h5>
-              {messages.length > 0 ? (
-                <ul className="list-group mt-3">
-                  {messages.map((msg, i) => (
-                    <li key={i} className="list-group-item">
-                      🕒 {msg.time} — <strong>{msg.text}</strong>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-muted">Aucun message reçu</p>
-              )}
+              <div className="col-md-6">
+                <div className="card p-3 mb-4">
+                  <h5>📨 Messages reçus (ESP → Serveur) :</h5>
+                  {messages.length > 0 ? (
+                    <ul className="list-group mt-3">
+                      {messages.map((msg, i) => (
+                        <li key={i} className="list-group-item">
+                          🕒 {msg.time} — <strong>{msg.text}</strong>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-muted">Aucun message reçu</p>
+                  )}
+                </div>
+              </div>
             </div>
 
             {/* === Routes disponibles === */}
