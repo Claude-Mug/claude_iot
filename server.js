@@ -46,7 +46,7 @@ app.use(express.static(path.join(__dirname, "client")));
 
 // === Route d’accueil (affiche la page principale) ===
 app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "client", "commandes.jsx"));
+  res.sendFile(path.join(__dirname, "client", "commandes.html"));
 });
 
 // === Vérification de la table ===
