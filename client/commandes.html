@@ -1,314 +1,252 @@
 <!DOCTYPE html>
 <html lang="fr">
-  <head>
-    <meta charset="UTF-8" />
-    <title>🌐 IoT Dashboard – Connexion & Commandes</title>
-
-    <!-- React & Babel -->
-    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
-
-    <!-- Bootstrap -->
-    <link
-      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
-      rel="stylesheet"
-    />
-
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Administration Claude-IoT</title>
     <style>
-      body {
-        background: #f0f4f8;
-        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-      }
-
-      h2,
-      h4 {
-        font-weight: 600;
-      }
-
-      .login-overlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: linear-gradient(135deg, #007bff, #6610f2);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 9999;
-      }
-
-      .login-card {
-        background: white;
-        width: 350px;
-        padding: 40px 30px;
-        border-radius: 15px;
-        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.25);
-        text-align: center;
-      }
-
-      .login-card h3 {
-        font-weight: bold;
-        margin-bottom: 15px;
-      }
-
-      .login-card input {
-        margin-bottom: 15px;
-      }
-
-      .card {
-        border-radius: 12px;
-        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
-      }
-
-      footer {
-        text-align: center;
-        margin-top: 30px;
-        color: #777;
-        font-size: 0.85rem;
-      }
-
-      .btn-primary {
-        background: linear-gradient(135deg, #007bff, #6610f2);
-        border: none;
-      }
-      .btn-primary:hover {
-        background: linear-gradient(135deg, #6610f2, #007bff);
-      }
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f9; }
+        .container { max-width: 1000px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        h1, h2 { color: #333; border-bottom: 2px solid #ccc; padding-bottom: 10px; margin-top: 20px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input[type="text"], input[type="password"], textarea { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        button { background-color: #007bff; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; margin-right: 10px; transition: background-color 0.3s; }
+        button:hover { background-color: #0056b3; }
+        .response { margin-top: 15px; padding: 15px; background-color: #e9ecef; border-radius: 4px; white-space: pre-wrap; word-break: break-all; }
+        .error { color: red; font-weight: bold; }
+        .success { color: green; font-weight: bold; }
+        #auth-form { padding: 30px; background-color: #ffe0b2; border-radius: 8px; }
+        #app-content { display: none; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
     </style>
-  </head>
+</head>
+<body>
 
-  <body>
-    <div id="root"></div>
+<div class="container">
+    <h1>🔒 Administration Claude-IoT</h1>
 
-    <script type="text/babel">
-      const API_URL = "https://claude-iot.onrender.com"; // 🔗 Ton serveur Render
+    <div id="auth-form">
+        <h2>Authentification Requise</h2>
+        <div class="form-group">
+            <label for="username">Nom d'utilisateur:</label>
+            <input type="text" id="username" value="Claude-Mug" required>
+        </div>
+        <div class="form-group">
+            <label for="password">Mot de passe:</label>
+            <input type="password" id="password" value="Moscouw03" required>
+        </div>
+        <button onclick="handleLogin()">Se connecter</button>
+        <p id="auth-status" class="error"></p>
+    </div>
 
-      function App() {
-        const [authenticated, setAuthenticated] = React.useState(false);
-        const [username, setUsername] = React.useState("");
-        const [password, setPassword] = React.useState("");
-        const [commandes, setCommandes] = React.useState([]);
-        const [messages, setMessages] = React.useState([]);
-        const [newCommand, setNewCommand] = React.useState("");
-        const [stats, setStats] = React.useState({ total: 0, mem: "0 Mo" });
-        const [routes, setRoutes] = React.useState([]);
+    <div id="app-content">
 
-        // === Authentification côté client ===
-        const handleLogin = (e) => {
-          e.preventDefault();
-          if (username === "Claude-Mug" && password === "Moscouw03") {
-            setAuthenticated(true);
-          } else {
-            alert("❌ Nom d'utilisateur ou mot de passe incorrect !");
-          }
-        };
+        <h2>📨 1. Envoyer une Nouvelle Commande (Vers l'ESP)</h2>
+        <div class="form-group">
+            <label for="command-input">Commande (Ex: LED:ON, Ventilateur:OFF):</label>
+            <input type="text" id="command-input" placeholder="ventilateur -> ON" required>
+        </div>
+        <button onclick="sendCommand()">Envoyer et Enregistrer</button>
+        <div id="command-response" class="response"></div>
+        
+        <hr>
 
-        // === Chargement des données ===
-        const loadData = async () => {
-          try {
-            const [cmdRes, msgRes, statusRes] = await Promise.all([
-              fetch(`${API_URL}/commands`),
-              fetch(`${API_URL}/messages`),
-              fetch(`${API_URL}/status`),
-            ]);
+        <h2>📜 2. Historique des Commandes</h2>
+        <button onclick="getAllCommands()">Afficher toutes les Commandes</button>
+        <button onclick="getAndDisplayLastCommand()">Dernière Commande (Texte)</button>
+        <div id="all-commands-display" class="response">Aucune donnée affichée.</div>
 
-            const cmdData = await cmdRes.json();
-            const msgData = await msgRes.json();
-            const statusData = await statusRes.json();
+        <hr>
 
-            setCommandes(cmdData);
-            setMessages(msgData);
-            setRoutes(statusData.routes_disponibles || []);
+        <h2>📡 3. Messages Récents des Dispositifs ESP (RAM)</h2>
+        <p>Ces messages sont nettoyés toutes les 15 minutes.</p>
+        <button onclick="getEspMessages()">Afficher les Messages ESP</button>
+        <div id="esp-messages-display" class="response">Aucune donnée affichée.</div>
 
-            setStats({
-              total: cmdData.length,
-              mem: statusData.memoire_utilisee || "N/A",
-            });
-          } catch (err) {
-            console.error("Erreur de chargement :", err);
-          }
-        };
+        <hr>
 
-        React.useEffect(() => {
-          if (authenticated) {
-            loadData();
-            const interval = setInterval(loadData, 8000);
-            return () => clearInterval(interval);
-          }
-        }, [authenticated]);
+        <h2>📊 4. Statut du Serveur et Infos Routes</h2>
+        <button onclick="getServerStatus()">Afficher le Statut du Serveur</button>
+        <div id="status-response" class="response"></div>
 
-        // === Envoi d'une commande ===
-        const sendCommand = async () => {
-          if (!newCommand.trim()) return alert("⚠️ Entrez une commande !");
-          try {
-            const res = await fetch(`${API_URL}/set_command`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ command: newCommand }),
-            });
-            const data = await res.json();
-            if (data.success) {
-              setNewCommand("");
-              loadData();
-            } else {
-              alert("❌ Erreur d’envoi : " + (data.message || "inconnue"));
+    </div>
+</div>
+
+<script>
+    // --- Authentification Hardcodée ---
+    const VALID_USERNAME = 'Claude-Mug';
+    const VALID_PASSWORD = 'Moscouw03';
+    let isAuthenticated = false;
+
+    function handleLogin() {
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+        const statusElement = document.getElementById('auth-status');
+
+        if (username === VALID_USERNAME && password === VALID_PASSWORD) {
+            isAuthenticated = true;
+            statusElement.textContent = 'Connexion réussie!';
+            statusElement.className = 'success';
+            document.getElementById('auth-form').style.display = 'none';
+            document.getElementById('app-content').style.display = 'block';
+        } else {
+            statusElement.textContent = 'Erreur: Nom d\'utilisateur ou mot de passe incorrect.';
+            statusElement.className = 'error';
+        }
+    }
+
+    // Sécurisation basique des requêtes (non-critique ici)
+    async function securedFetch(url, options = {}) {
+        if (!isAuthenticated) {
+            alert("Erreur d'authentification. Veuillez vous reconnecter.");
+            // Forcer la déconnexion visuelle
+            document.getElementById('auth-form').style.display = 'block';
+            document.getElementById('app-content').style.display = 'none';
+            return { ok: false, status: 401 };
+        }
+        
+        try {
+            const response = await fetch(url, options);
+            if (!response.ok) {
+                 // Gère les erreurs HTTP côté serveur
+                return { ok: false, status: response.status, text: await response.text(), json: null };
             }
-          } catch (err) {
-            alert("❌ Serveur injoignable !");
-          }
-        };
+            return { ok: true, status: response.status, text: await response.text(), json: response.headers.get('content-type')?.includes('application/json') ? await response.json() : null };
+        } catch (error) {
+            console.error('Erreur réseau:', error);
+            return { ok: false, status: 0, text: `Erreur réseau: ${error.message}`, json: null };
+        }
+    }
 
-        // === UI: Formulaire de connexion ===
-        if (!authenticated) {
-          return (
-            <div className="login-overlay">
-              <form className="login-card" onSubmit={handleLogin}>
-                <h3>🔐 Connexion Sécurisée</h3>
-                <p className="text-muted mb-3">
-                  Accédez à votre tableau de bord IoT
-                </p>
-                <input
-                  type="text"
-                  className="form-control"
-                  placeholder="Nom d'utilisateur"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  required
-                />
-                <input
-                  type="password"
-                  className="form-control"
-                  placeholder="Mot de passe"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
-                <button type="submit" className="btn btn-primary w-100">
-                  Se connecter
-                </button>
-              </form>
-            </div>
-          );
+    // --- Fonctions d'Interaction avec les Routes ---
+
+    // Fonction fictive (non implémentée dans les routes actuelles) pour effacer la DB
+    function clearCommands() {
+        alert("La fonction d'effacement de la base de données n'est pas encore implémentée sur le serveur.");
+    }
+    
+    // 1. Envoi de Commande (vers le serveur pour être stockée)
+    async function sendCommand() {
+        const commandValue = document.getElementById('command-input').value;
+        const responseDiv = document.getElementById('command-response');
+        if (!commandValue) {
+            responseDiv.innerHTML = '<span class="error">Veuillez entrer une commande.</span>';
+            return;
         }
 
-        // === UI principale ===
-        return (
-          <div className="container py-4">
-            <h2 className="text-center mb-4 text-primary fw-bold">
-              🌐 Tableau de Bord IoT
-            </h2>
+        // NOTE: Ceci est une simulation. Dans la réalité, une commande doit être transmise à l'ESP.
+        // Ici, nous simulons une route POST qui ajoute la commande à la DB.
+        const response = await securedFetch('/commande_post', { // Supposons que vous créez une route POST /commande_post qui ajoute à la DB
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ command: commandValue })
+        });
 
-            {/* === Statistiques === */}
-            <div className="row mb-4">
-              <div className="col-md-6">
-                <div className="card text-center p-3">
-                  <h5>📦 Total Commandes</h5>
-                  <h3 className="text-primary">{stats.total}</h3>
-                </div>
-              </div>
-              <div className="col-md-6">
-                <div className="card text-center p-3">
-                  <h5>💾 Mémoire utilisée</h5>
-                  <p className="fw-bold text-success">{stats.mem}</p>
-                </div>
-              </div>
-            </div>
+        if (response.ok) {
+            responseDiv.innerHTML = `<span class="success">✅ Commande enregistrée : ${commandValue}</span>`;
+            // Pour l'exemple, nous allons simuler l'envoi de la commande à une route fictive
+        } else {
+            responseDiv.innerHTML = `<span class="error">❌ Erreur d'enregistrement (Statut: ${response.status}) : ${response.text}</span>`;
+        }
+    }
 
-            {/* === Formulaire === */}
-            <div className="input-group mb-4">
-              <input
-                type="text"
-                className="form-control"
-                placeholder="Ex: led1_on"
-                value={newCommand}
-                onChange={(e) => setNewCommand(e.target.value)}
-              />
-              <button className="btn btn-primary" onClick={sendCommand}>
-                ➕ Envoyer
-              </button>
-            </div>
+    // 2. Affichage des commandes
+    async function getAllCommands() {
+        const responseDiv = document.getElementById('all-commands-display');
+        responseDiv.textContent = 'Chargement...';
 
-            {/* === Commandes et messages === */}
-            <div className="row">
-              <div className="col-md-6">
-                <div className="card p-3 mb-4">
-                  <h5>📋 Commandes enregistrées :</h5>
-                  <table className="table table-hover mt-3">
-                    <thead className="table-primary">
-                      <tr>
-                        <th>#</th>
-                        <th>Commande</th>
-                        <th>Date / Heure</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {commandes.length > 0 ? (
-                        commandes.map((cmd) => (
-                          <tr key={cmd.id}>
-                            <td>{cmd.id}</td>
-                            <td>{cmd.command}</td>
-                            <td>
-                              {cmd.date_creation
-                                ? new Date(cmd.date_creation).toLocaleString(
-                                    "fr-FR"
-                                  )
-                                : "-"}
-                            </td>
-                          </tr>
-                        ))
-                      ) : (
-                        <tr>
-                          <td colSpan="3" className="text-center text-muted">
-                            Aucune commande
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
+        const response = await securedFetch('/all_commands');
 
-              <div className="col-md-6">
-                <div className="card p-3 mb-4">
-                  <h5>📨 Messages ESP :</h5>
-                  {messages.length > 0 ? (
-                    <ul className="list-group mt-3">
-                      {messages.map((msg) => (
-                        <li key={msg.id} className="list-group-item">
-                          🕒 {msg.timestamp
-                            ? new Date(msg.timestamp).toLocaleTimeString("fr-FR")
-                            : ""}{" "}
-                          — <strong>{msg.message}</strong>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="text-muted">Aucun message reçu</p>
-                  )}
-                </div>
-              </div>
-            </div>
+        if (response.ok && response.json) {
+            const data = response.json;
+            if (data.success && data.commands.length > 0) {
+                let html = '<table><tr><th>ID</th><th>Commande</th><th>Date</th></tr>';
+                data.commands.forEach(cmd => {
+                    const date = new Date(cmd.created_at).toLocaleString('fr-FR');
+                    html += `<tr><td>${cmd.id}</td><td>${cmd.command}</td><td>${date}</td></tr>`;
+                });
+                html += '</table>';
+                responseDiv.innerHTML = html;
+            } else {
+                responseDiv.innerHTML = '<span class="error">Aucune commande trouvée.</span>';
+            }
+        } else {
+            responseDiv.innerHTML = `<span class="error">❌ Erreur lors de la récupération des commandes (Statut: ${response.status}).</span>`;
+        }
+    }
+    
+    // Afficher la dernière commande (Texte Brut)
+    async function getAndDisplayLastCommand() {
+        const responseDiv = document.getElementById('all-commands-display');
+        responseDiv.textContent = 'Chargement de la dernière commande...';
 
-            {/* === Routes disponibles === */}
-            <div className="card p-3 mb-4">
-              <h5>🛣️ Routes disponibles :</h5>
-              <ul className="list-group mt-3">
-                {routes.map((r, i) => (
-                  <li key={i} className="list-group-item">
-                    <code>{r}</code>
-                  </li>
-                ))}
-              </ul>
-            </div>
+        const response = await securedFetch('/last_command'); // Route texte brut
 
-            <footer>© 2025 Claude IoT Dashboard</footer>
-          </div>
-        );
-      }
+        if (response.ok) {
+            responseDiv.innerHTML = `<p><strong>Dernière Commande (Texte Brut):</strong></p><pre>${response.text}</pre>`;
+        } else {
+            responseDiv.innerHTML = `<span class="error">❌ Erreur lors de la récupération de la dernière commande (Statut: ${response.status}).</span>`;
+        }
+    }
 
-      ReactDOM.createRoot(document.getElementById("root")).render(<App />);
-    </script>
-  </body>
+    // 3. Affichage des messages ESP
+    async function getEspMessages() {
+        const responseDiv = document.getElementById('esp-messages-display');
+        responseDiv.textContent = 'Chargement...';
+
+        const response = await securedFetch('/messages');
+
+        if (response.ok && response.json) {
+            const data = response.json;
+            if (data.success && data.messages.length > 0) {
+                let html = `<h4>Total Messages: ${data.count}</h4><table><tr><th>Device ID</th><th>Message</th><th>Date</th></tr>`;
+                data.messages.forEach(msg => {
+                    const date = new Date(msg.created_at).toLocaleTimeString('fr-FR');
+                    html += `<tr><td>${msg.device_id}</td><td>${msg.message}</td><td>${date}</td></tr>`;
+                });
+                html += '</table>';
+                responseDiv.innerHTML = html;
+            } else {
+                responseDiv.innerHTML = '<span class="error">Aucun message ESP en RAM.</span>';
+            }
+        } else {
+            responseDiv.innerHTML = `<span class="error">❌ Erreur lors de la récupération des messages ESP (Statut: ${response.status}).</span>`;
+        }
+    }
+
+    // 4. Affichage du Statut du Serveur
+    async function getServerStatus() {
+        const responseDiv = document.getElementById('status-response');
+        responseDiv.textContent = 'Chargement...';
+
+        const response = await securedFetch('/status');
+
+        if (response.ok && response.json) {
+            const data = response.json;
+            let html = `
+                <p><strong>Service:</strong> ${data.service}</p>
+                <p><strong>Statut:</strong> <span class="${data.status === 'online' ? 'success' : 'error'}">${data.status}</span></p>
+                <p><strong>Statut DB:</strong> ${data.db_status}</p>
+                <p><strong>Routes Disponibles (${data.routes_available.length}):</strong></p>
+                <ul>
+                    ${data.routes_available.map(r => `<li>${r}</li>`).join('')}
+                </ul>
+                <p><strong>Timestamp:</strong> ${data.timestamp}</p>
+            `;
+            responseDiv.innerHTML = html;
+        } else {
+            responseDiv.innerHTML = `<span class="error">❌ Erreur lors de la récupération du statut (Statut: ${response.status}).</span>`;
+        }
+    }
+    
+    // Tente de se connecter au chargement pour un environnement de développement
+    window.onload = () => {
+        handleLogin(); // Tente de se connecter avec les valeurs par défaut
+    };
+</script>
+
+</body>
 </html>
