@@ -6,7 +6,7 @@ import { fileURLToPath } from 'url';
 import pool from './config/db.js';                 // Connexion DB (pour /status)
 import getLastCommand from './get_last_command.js';     // Pour /last_command(s)
 import getAllCommands from './get_commandes.js';        // Pour la route /all_commands
-import sendCommandToDb from './send_commandes.js';      // POUR LA NOUVELLE ROUTE POST
+import sendCommandToDb from './send_command.js';      // POUR LA NOUVELLE ROUTE POST
 import { addEspMessage } from './esp_send.js';        // Pour la route POST /esp_message (RAM)
 import getMessagesForApk from './messages.js';        // Pour la route GET /messages (RAM)
 
