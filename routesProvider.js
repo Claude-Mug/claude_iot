@@ -1,12 +1,11 @@
-// routesProvider.js
 import path from 'path';
 import { fileURLToPath } from 'url';
-
 // Modules d'accès aux données
 import pool from './config/db.js';                 // Connexion DB (pour /status)
 import getLastCommand from './get_last_command.js';     // Pour /last_command(s)
 import getAllCommands from './get_commandes.js';        // Pour la route /all_commands
-import sendCommandToDb from './send_command.js';      // POUR LA NOUVELLE ROUTE POST
+import sendCommandToDb from './send_commandes.js';      // POUR LA ROUTE POST (Upsert et Nettoyage)
+import deleteCommand from './delete_command.js';        // NOUVEAU: Pour la route DELETE /commande/:id
 import { addEspMessage } from './esp_send.js';        // Pour la route POST /esp_message (RAM)
 import getMessagesForApk from './messages.js';        // Pour la route GET /messages (RAM)
 
@@ -107,10 +106,32 @@ const setupRoutes = (app) => {
         }
     });
 
+    // 7. Route DELETE /commande/:id : SUPPRIME une commande par ID
+    app.delete('/commande/:id', async (req, res) => {
+        const { id } = req.params;
+        const commandId = parseInt(id, 10);
+
+        if (isNaN(commandId)) {
+            return res.status(400).json({ success: false, message: 'ID de commande invalide.' });
+        }
+
+        try {
+            const deletedCount = await deleteCommand(commandId);
+            
+            if (deletedCount > 0) {
+                res.json({ success: true, message: `Commande ID ${commandId} supprimée avec succès.` });
+            } else {
+                res.status(404).json({ success: false, message: `Commande ID ${commandId} non trouvée.` });
+            }
+        } catch (error) {
+            console.error(`Erreur sur DELETE /commande/${id}:`, error.message);
+            res.status(500).json({ success: false, message: "Erreur serveur lors de la suppression." });
+        }
+    });
 
     // --- 📱 3. Routes Messages ESP (RAM) ---
 
-    // 7. Route /messages : GET (Envoi des messages RAM à l'APK)
+    // 8. Route /messages : GET (Envoi des messages RAM à l'APK)
     app.get('/messages', (req, res) => {
         try {
             const messages = getMessagesForApk(); // Utilise le gestionnaire RAM
@@ -125,7 +146,7 @@ const setupRoutes = (app) => {
         }
     });
 
-    // 8. Route /esp_message : POST (Réception des messages de l'ESP pour la RAM)
+    // 9. Route /esp_message : POST (Réception des messages de l'ESP pour la RAM)
     app.post('/esp_message', (req, res) => {
         const { device_id, message } = req.body;
 
@@ -143,11 +164,13 @@ const setupRoutes = (app) => {
 
     // --- ⚙️ 4. Route Status ---
 
-    // 9. Route /status : Infos système et routes disponibles
+    // 10. Route /status : Infos système et routes disponibles
     app.get('/status', (req, res) => {
         const routes = [
-            '/', '/home', 
-            '/last_command', '/last_command_json', '/all_commands', '/commande_post (POST)', // Routes DB
+            '/', '/home',
+            '/last_command', '/last_command_json', '/all_commands', 
+            '/commande_post (POST)', // Routes DB
+            '/commande/:id (DELETE)', // Nouvelle route DELETE
             '/messages', '/esp_message (POST)', // Routes RAM
             '/status'
         ];
