@@ -26,58 +26,95 @@
       .btn-danger {
         font-size: 0.85rem;
       }
+      .login-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(255, 255, 255, 0.95);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+      }
+      .login-card {
+        background: white;
+        padding: 30px;
+        border-radius: 10px;
+        box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+        text-align: center;
+      }
     </style>
   </head>
 
   <body>
-    <div class="container py-4">
-      <h2 class="text-center mb-4 fw-bold text-primary">
-        🌐 Tableau de bord IoT – Gestion des Commandes
-      </h2>
-      <div id="root"></div>
-    </div>
+    <div id="root"></div>
 
     <script type="text/babel">
       const API_URL = window.location.origin;
 
       function App() {
+        const [authenticated, setAuthenticated] = React.useState(false);
         const [commandes, setCommandes] = React.useState([]);
+        const [messages, setMessages] = React.useState([]);
         const [newCommand, setNewCommand] = React.useState("");
         const [stats, setStats] = React.useState({
           total: 0,
-          last: "Aucune",
-          lastDate: "-",
+          mem: "0 Mo",
         });
+        const [routes, setRoutes] = React.useState([]);
 
-        // Charger les commandes + infos
+        // === Authentification simple ===
+        const handleLogin = () => {
+          const user = prompt("👤 Nom d'utilisateur :");
+          const pass = prompt("🔒 Mot de passe :");
+          if (user === "Claude-Mug" && pass === "Moscouw03") {
+            setAuthenticated(true);
+          } else {
+            alert("❌ Accès refusé !");
+          }
+        };
+
+        // Charger les données
         const loadData = async () => {
           try {
-            const res = await fetch(`${API_URL}/commands`);
-            const data = await res.json();
-            setCommandes(data);
+            const resCmd = await fetch(`${API_URL}/commands`);
+            const cmdData = await resCmd.json();
+            setCommandes(cmdData);
 
-            if (data.length > 0) {
-              const last = data[data.length - 1];
-              setStats({
-                total: data.length,
-                last: last.command,
-                lastDate: new Date(last.created_at).toLocaleString("fr-FR"),
-              });
-            } else {
-              setStats({ total: 0, last: "Aucune", lastDate: "-" });
-            }
+            // Récupérer les messages temporaires
+            const resMsg = await fetch(`${API_URL}/messages`);
+            const msgData = await resMsg.json();
+            setMessages(msgData);
+
+            // Récupérer les routes du serveur
+            const resRoutes = await fetch(`${API_URL}/routes_info`);
+            const routesData = await resRoutes.json();
+            setRoutes(routesData.routes);
+
+            // Calcul mémoire utilisée côté navigateur (simple approximation)
+            const memUsed =
+              (performance.memory?.usedJSHeapSize || 0) / 1024 / 1024;
+
+            setStats({
+              total: cmdData.length,
+              mem: memUsed.toFixed(2) + " Mo",
+            });
           } catch (err) {
             console.error("Erreur de chargement :", err);
           }
         };
 
         React.useEffect(() => {
-          loadData();
-          const interval = setInterval(loadData, 10000); // auto-refresh
-          return () => clearInterval(interval);
-        }, []);
+          if (authenticated) {
+            loadData();
+            const interval = setInterval(loadData, 10000);
+            return () => clearInterval(interval);
+          }
+        }, [authenticated]);
 
-        // Envoyer une commande
+        // === Envoyer une commande ===
         const sendCommand = async () => {
           if (!newCommand.trim()) return alert("⚠️ Entrez une commande !");
           try {
@@ -91,59 +128,55 @@
               setNewCommand("");
               loadData();
             } else {
-              alert("❌ Erreur lors de l’envoi");
+              alert("❌ Erreur d’envoi");
             }
           } catch (err) {
             alert("❌ Serveur injoignable !");
           }
         };
 
-        // Supprimer une commande
-        const deleteCommand = async (id) => {
-          if (!confirm("Voulez-vous vraiment supprimer cette commande ?")) return;
-          try {
-            const res = await fetch(`${API_URL}/delete_command/${id}`, {
-              method: "DELETE",
-            });
-            const data = await res.json();
-            if (data.success) loadData();
-            else alert("Erreur suppression !");
-          } catch (err) {
-            alert("Erreur réseau !");
-          }
-        };
+        if (!authenticated) {
+          return (
+            <div className="login-overlay">
+              <div className="login-card">
+                <h4>🔐 Accès sécurisé</h4>
+                <p>Veuillez vous connecter pour accéder au tableau de bord.</p>
+                <button className="btn btn-primary" onClick={handleLogin}>
+                  Se connecter
+                </button>
+              </div>
+            </div>
+          );
+        }
 
         return (
-          <div>
-            {/* === Section Informations === */}
+          <div className="container py-4">
+            <h2 className="text-center mb-4 fw-bold text-primary">
+              🌐 Tableau de bord IoT – Gestion des Commandes
+            </h2>
+
+            {/* === Stats === */}
             <div className="row mb-4">
-              <div className="col-md-4">
+              <div className="col-md-6">
                 <div className="card text-center p-3">
                   <h5>📦 Total Commandes</h5>
                   <h3 className="text-primary">{stats.total}</h3>
                 </div>
               </div>
-              <div className="col-md-4">
+              <div className="col-md-6">
                 <div className="card text-center p-3">
-                  <h5>🕒 Dernière commande</h5>
-                  <p className="fw-bold">{stats.last}</p>
-                  <small className="text-muted">{stats.lastDate}</small>
-                </div>
-              </div>
-              <div className="col-md-4">
-                <div className="card text-center p-3">
-                  <h5>🔄 Actualisation</h5>
-                  <p className="text-success">Toutes les 10 secondes</p>
+                  <h5>💾 Mémoire utilisée (navigateur)</h5>
+                  <p className="fw-bold text-success">{stats.mem}</p>
                 </div>
               </div>
             </div>
 
-            {/* === Formulaire d’ajout === */}
+            {/* === Formulaire === */}
             <div className="input-group mb-4">
               <input
                 type="text"
                 className="form-control"
-                placeholder="Entrez une commande (ex: allumer_led)"
+                placeholder="Ex: Lampes_on"
                 value={newCommand}
                 onChange={(e) => setNewCommand(e.target.value)}
               />
@@ -152,16 +185,15 @@
               </button>
             </div>
 
-            {/* === Tableau des commandes === */}
-            <div className="card p-3">
-              <h5>📋 Historique des commandes :</h5>
+            {/* === Commandes === */}
+            <div className="card p-3 mb-4">
+              <h5>📋 Commandes en mémoire :</h5>
               <table className="table table-hover mt-3">
                 <thead className="table-primary">
                   <tr>
-                    <th>ID</th>
+                    <th>#</th>
                     <th>Commande</th>
                     <th>Date / Heure</th>
-                    <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -171,30 +203,47 @@
                         <td>{cmd.id}</td>
                         <td>{cmd.command}</td>
                         <td>
-                          {new Date(cmd.created_at).toLocaleString("fr-FR", {
-                            dateStyle: "short",
-                            timeStyle: "medium",
-                          })}
-                        </td>
-                        <td>
-                          <button
-                            className="btn btn-sm btn-danger"
-                            onClick={() => deleteCommand(cmd.id)}
-                          >
-                            🗑️ Supprimer
-                          </button>
+                          {new Date(cmd.created_at).toLocaleString("fr-FR")}
                         </td>
                       </tr>
                     ))
                   ) : (
                     <tr>
-                      <td colSpan="4" className="text-center text-muted">
-                        Aucune commande enregistrée
+                      <td colSpan="3" className="text-center text-muted">
+                        Aucune commande
                       </td>
                     </tr>
                   )}
                 </tbody>
               </table>
+            </div>
+
+            {/* === Messages === */}
+            <div className="card p-3 mb-4">
+              <h5>📨 Messages reçus (ESP → Serveur) :</h5>
+              {messages.length > 0 ? (
+                <ul className="list-group mt-3">
+                  {messages.map((msg, i) => (
+                    <li key={i} className="list-group-item">
+                      🕒 {msg.time} — <strong>{msg.text}</strong>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-muted">Aucun message reçu</p>
+              )}
+            </div>
+
+            {/* === Routes disponibles === */}
+            <div className="card p-3">
+              <h5>🛣️ Routes disponibles :</h5>
+              <ul className="list-group mt-3">
+                {routes.map((r, i) => (
+                  <li key={i} className="list-group-item">
+                    <strong>{r.method}</strong> → {r.path}
+                  </li>
+                ))}
+              </ul>
             </div>
           </div>
         );
