@@ -2,7 +2,7 @@
 <html lang="fr">
   <head>
     <meta charset="UTF-8" />
-    <title>🌐 IoT Dashboard – Commandes</title>
+    <title>🌐 IoT Dashboard – Connexion & Commandes</title>
 
     <!-- React & Babel -->
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
@@ -17,33 +17,64 @@
 
     <style>
       body {
-        background: #f8f9fa;
+        background: #f0f4f8;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
       }
-      .card {
-        border-radius: 12px;
-        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+
+      h2,
+      h4 {
+        font-weight: 600;
       }
-      .btn-danger {
-        font-size: 0.85rem;
-      }
+
       .login-overlay {
         position: fixed;
         top: 0;
         left: 0;
         width: 100%;
         height: 100%;
-        background: rgba(255, 255, 255, 0.95);
+        background: linear-gradient(135deg, #007bff, #6610f2);
         display: flex;
         align-items: center;
         justify-content: center;
         z-index: 9999;
       }
+
       .login-card {
         background: white;
-        padding: 30px;
-        border-radius: 10px;
-        box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+        width: 350px;
+        padding: 40px 30px;
+        border-radius: 15px;
+        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.25);
         text-align: center;
+      }
+
+      .login-card h3 {
+        font-weight: bold;
+        margin-bottom: 15px;
+      }
+
+      .login-card input {
+        margin-bottom: 15px;
+      }
+
+      .card {
+        border-radius: 12px;
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+      }
+
+      footer {
+        text-align: center;
+        margin-top: 30px;
+        color: #777;
+        font-size: 0.85rem;
+      }
+
+      .btn-primary {
+        background: linear-gradient(135deg, #007bff, #6610f2);
+        border: none;
+      }
+      .btn-primary:hover {
+        background: linear-gradient(135deg, #6610f2, #007bff);
       }
     </style>
   </head>
@@ -52,55 +83,48 @@
     <div id="root"></div>
 
     <script type="text/babel">
-      // 🟢 Lien fixe vers ton serveur Render
-      const API_URL = "https://claude-iot.onrender.com";
+      const API_URL = "https://claude-iot.onrender.com"; // 🔗 Ton serveur Render
 
       function App() {
         const [authenticated, setAuthenticated] = React.useState(false);
+        const [username, setUsername] = React.useState("");
+        const [password, setPassword] = React.useState("");
         const [commandes, setCommandes] = React.useState([]);
         const [messages, setMessages] = React.useState([]);
         const [newCommand, setNewCommand] = React.useState("");
         const [stats, setStats] = React.useState({ total: 0, mem: "0 Mo" });
         const [routes, setRoutes] = React.useState([]);
 
-        // === Authentification simple ===
-        const handleLogin = () => {
-          const user = prompt("👤 Nom d'utilisateur :");
-          const pass = prompt("🔒 Mot de passe :");
-          if (user === "Claude-Mug" && pass === "Moscouw03") {
+        // === Authentification côté client ===
+        const handleLogin = (e) => {
+          e.preventDefault();
+          if (username === "Claude-Mug" && password === "Moscouw03") {
             setAuthenticated(true);
           } else {
-            alert("❌ Accès refusé !");
+            alert("❌ Nom d'utilisateur ou mot de passe incorrect !");
           }
         };
 
         // === Chargement des données ===
         const loadData = async () => {
           try {
-            const [cmdRes, msgRes, routeRes] = await Promise.all([
+            const [cmdRes, msgRes, statusRes] = await Promise.all([
               fetch(`${API_URL}/commands`),
               fetch(`${API_URL}/messages`),
-              fetch(`${API_URL}/routes_info`)
+              fetch(`${API_URL}/status`),
             ]);
 
             const cmdData = await cmdRes.json();
             const msgData = await msgRes.json();
-            const routeData = await routeRes.json();
+            const statusData = await statusRes.json();
 
             setCommandes(cmdData);
             setMessages(msgData);
-            setRoutes(routeData.routes || []);
-
-            const memUsed =
-              (performance.memory && performance.memory.usedJSHeapSize
-                ? performance.memory.usedJSHeapSize
-                : 0) /
-              1024 /
-              1024;
+            setRoutes(statusData.routes_disponibles || []);
 
             setStats({
               total: cmdData.length,
-              mem: memUsed.toFixed(2) + " Mo",
+              mem: statusData.memoire_utilisee || "N/A",
             });
           } catch (err) {
             console.error("Erreur de chargement :", err);
@@ -136,24 +160,44 @@
           }
         };
 
+        // === UI: Formulaire de connexion ===
         if (!authenticated) {
           return (
             <div className="login-overlay">
-              <div className="login-card">
-                <h4>🔐 Accès sécurisé</h4>
-                <p>Veuillez vous connecter pour accéder au tableau de bord.</p>
-                <button className="btn btn-primary" onClick={handleLogin}>
+              <form className="login-card" onSubmit={handleLogin}>
+                <h3>🔐 Connexion Sécurisée</h3>
+                <p className="text-muted mb-3">
+                  Accédez à votre tableau de bord IoT
+                </p>
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="Nom d'utilisateur"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  required
+                />
+                <input
+                  type="password"
+                  className="form-control"
+                  placeholder="Mot de passe"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+                <button type="submit" className="btn btn-primary w-100">
                   Se connecter
                 </button>
-              </div>
+              </form>
             </div>
           );
         }
 
+        // === UI principale ===
         return (
           <div className="container py-4">
-            <h2 className="text-center mb-4 fw-bold text-primary">
-              🌐 Tableau de bord IoT – Gestion des Commandes
+            <h2 className="text-center mb-4 text-primary fw-bold">
+              🌐 Tableau de Bord IoT
             </h2>
 
             {/* === Statistiques === */}
@@ -166,7 +210,7 @@
               </div>
               <div className="col-md-6">
                 <div className="card text-center p-3">
-                  <h5>💾 Mémoire utilisée (navigateur)</h5>
+                  <h5>💾 Mémoire utilisée</h5>
                   <p className="fw-bold text-success">{stats.mem}</p>
                 </div>
               </div>
@@ -177,7 +221,7 @@
               <input
                 type="text"
                 className="form-control"
-                placeholder="Ex: Lampes_on"
+                placeholder="Ex: led1_on"
                 value={newCommand}
                 onChange={(e) => setNewCommand(e.target.value)}
               />
@@ -186,7 +230,7 @@
               </button>
             </div>
 
-            {/* === Commandes & Messages === */}
+            {/* === Commandes et messages === */}
             <div className="row">
               <div className="col-md-6">
                 <div className="card p-3 mb-4">
@@ -206,7 +250,11 @@
                             <td>{cmd.id}</td>
                             <td>{cmd.command}</td>
                             <td>
-                              {new Date(cmd.created_at).toLocaleString("fr-FR")}
+                              {cmd.date_creation
+                                ? new Date(cmd.date_creation).toLocaleString(
+                                    "fr-FR"
+                                  )
+                                : "-"}
                             </td>
                           </tr>
                         ))
@@ -224,12 +272,15 @@
 
               <div className="col-md-6">
                 <div className="card p-3 mb-4">
-                  <h5>📨 Messages reçus (ESP → Serveur) :</h5>
+                  <h5>📨 Messages ESP :</h5>
                   {messages.length > 0 ? (
                     <ul className="list-group mt-3">
-                      {messages.map((msg, i) => (
-                        <li key={i} className="list-group-item">
-                          🕒 {msg.time} — <strong>{msg.text}</strong>
+                      {messages.map((msg) => (
+                        <li key={msg.id} className="list-group-item">
+                          🕒 {msg.timestamp
+                            ? new Date(msg.timestamp).toLocaleTimeString("fr-FR")
+                            : ""}{" "}
+                          — <strong>{msg.message}</strong>
                         </li>
                       ))}
                     </ul>
@@ -241,16 +292,18 @@
             </div>
 
             {/* === Routes disponibles === */}
-            <div className="card p-3">
+            <div className="card p-3 mb-4">
               <h5>🛣️ Routes disponibles :</h5>
               <ul className="list-group mt-3">
                 {routes.map((r, i) => (
                   <li key={i} className="list-group-item">
-                    <strong>{r.method}</strong> → {r.path}
+                    <code>{r}</code>
                   </li>
                 ))}
               </ul>
             </div>
+
+            <footer>© 2025 Claude IoT Dashboard</footer>
           </div>
         );
       }
