@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <title>🌐 Interface IoT</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script
+      crossorigin
+      src="https://unpkg.com/react@18/umd/react.development.js"
+    ></script>
+    <script
+      crossorigin
+      src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"
+    ></script>
+    <script
+      crossorigin
+      src="https://unpkg.com/axios/dist/axios.min.js"
+    ></script>
+    <script
+      crossorigin
+      src="https://unpkg.com/@babel/standalone/babel.min.js"
+    ></script>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background: #f8f9fa;
+        margin: 0;
+        padding: 20px;
+      }
+      .container {
+        max-width: 800px;
+        margin: auto;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        padding: 20px;
+      }
+      h1 {
+        color: #007bff;
+        text-align: center;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      table, th, td {
+        border: 1px solid #ddd;
+      }
+      th, td {
+        padding: 10px;
+        text-align: center;
+      }
+      th {
+        background-color: #007bff;
+        color: white;
+      }
+      input {
+        padding: 8px;
+        width: 70%;
+        border-radius: 6px;
+        border: 1px solid #ccc;
+      }
+      button {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 6px;
+        background-color: #007bff;
+        color: white;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+      function App() {
+        const [command, setCommand] = React.useState("");
+        const [commandes, setCommandes] = React.useState([]);
+
+        const API = "https://claude-iot.onrender.com";
+
+        const fetchCommands = async () => {
+          try {
+            const res = await axios.get(API + "/all_commands");
+            setCommandes(res.data);
+          } catch (err) {
+            console.error("Erreur lors du chargement :", err);
+          }
+        };
+
+        const sendCommand = async () => {
+          if (!command.trim()) return alert("Veuillez entrer une commande !");
+          try {
+            await axios.post(API + "/set_command", { command });
+            setCommand("");
+            fetchCommands();
+          } catch (err) {
+            console.error("Erreur lors de l’envoi :", err);
+          }
+        };
+
+        React.useEffect(() => {
+          fetchCommands();
+        }, []);
+
+        return (
+          <div className="container">
+            <h1>🌐 Gestion des Commandes IoT</h1>
+            <div style={{ display: "flex", gap: "10px", marginBottom: "20px" }}>
+              <input
+                type="text"
+                value={command}
+                placeholder="Ex : allumer_led"
+                onChange={(e) => setCommand(e.target.value)}
+              />
+              <button onClick={sendCommand}>Envoyer</button>
+            </div>
+
+            <h2>📋 Commandes enregistrées</h2>
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Commande</th>
+                  <th>Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                {commandes.length > 0 ? (
+                  commandes.map((cmd) => (
+                    <tr key={cmd.id}>
+                      <td>{cmd.id}</td>
+                      <td>{cmd.command}</td>
+                      <td>{new Date(cmd.created_at).toLocaleString()}</td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="3">Aucune commande enregistrée</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        );
+      }
+
+      ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+    </script>
+  </body>
+</html>
