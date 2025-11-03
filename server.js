@@ -13,13 +13,15 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const port = process.env.PORT || 3000;
 
-// 🌐 Middlewares
+// === 🔹 Middlewares ===
 app.use(cors());
 app.use(bodyParser.json());
+
+// Sert les fichiers statiques (public et client)
 app.use(express.static(path.join(__dirname, "public")));
 app.use(express.static(path.join(__dirname, "client")));
 
-// 🗄️ Connexion à PostgreSQL
+// === 🔹 Connexion PostgreSQL ===
 const pool = new Pool({
   connectionString:
     process.env.DATABASE_URL ||
@@ -27,40 +29,57 @@ const pool = new Pool({
   ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false,
 });
 
-// 💬 Mémoire temporaire des messages ESP
+// === 🔹 Mémoire tampon pour les messages ESP ===
 let messages = [];
 const MAX_MESSAGES = 50;
 
-// 🏠 Page principale
+// === 🔹 ROUTES ===
+
+// Page d’accueil (index.html)
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
-// 🖥️ Page commandes.html
+// Page des commandes (commandes.html)
 app.get("/home", (req, res) => {
   res.sendFile(path.join(__dirname, "client", "commandes.html"));
 });
 
-// ⚙️ Dernière commande (texte brut, pour ESP)
+// === 🔹 Enregistrer une commande ===
+app.post("/set_command", async (req, res) => {
+  const { command } = req.body;
+  if (!command)
+    return res.status(400).json({ success: false, message: "Champ 'command' manquant" });
+
+  try {
+    await pool.query("INSERT INTO commandes (command) VALUES ($1)", [command]);
+    console.log(`✅ Commande enregistrée : ${command}`);
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Erreur /set_command :", error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// === 🔹 Dernière commande — format texte brut (pour ESP) ===
 app.get("/last_command", async (req, res) => {
   try {
     const { rows } = await pool.query(
-      "SELECT * FROM commandes ORDER BY id DESC LIMIT 1"
+      "SELECT command FROM commandes ORDER BY id DESC LIMIT 1"
     );
     if (rows.length === 0)
       return res
         .status(200)
         .type("text/plain")
-        .send("Aucune commande disponible.");
-    const cmd = rows[0];
-    res.type("text/plain").send(cmd.command);
+        .send("Aucune commande disponible pour le moment.");
+    res.type("text/plain").send(rows[0].command);
   } catch (error) {
-    console.error("❌ Erreur /last_command :", error.message);
+    console.error("Erreur /last_command :", error.message);
     res.status(500).type("text/plain").send("Erreur serveur : " + error.message);
   }
 });
 
-// ⚙️ Dernière commande (JSON)
+// === 🔹 Dernière commande — format JSON ===
 app.get("/last_command_json", async (req, res) => {
   try {
     const { rows } = await pool.query(
@@ -70,30 +89,16 @@ app.get("/last_command_json", async (req, res) => {
       return res.json({ success: false, message: "Aucune commande trouvée" });
     res.json({ success: true, last_command: rows[0] });
   } catch (error) {
-    console.error("❌ Erreur /last_command_json :", error.message);
+    console.error("Erreur /last_command_json :", error.message);
     res.status(500).json({ success: false, error: error.message });
   }
 });
 
-// 🚀 Ajouter une commande depuis l’UI
-app.post("/set_command", async (req, res) => {
-  const { command } = req.body;
-  if (!command)
-    return res.status(400).json({ success: false, message: "Commande manquante" });
-  try {
-    await pool.query("INSERT INTO commandes (command) VALUES ($1)", [command]);
-    console.log(`✅ Nouvelle commande enregistrée : ${command}`);
-    res.json({ success: true });
-  } catch (error) {
-    console.error("❌ Erreur /set_command :", error.message);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-// 📩 Réception des messages ESP
+// === 🔹 Réception des messages ESP (texte ou JSON) ===
 app.post("/esp_message", express.text({ type: "*/*" }), (req, res) => {
   const rawBody = req.body;
   let message;
+
   try {
     const parsed = JSON.parse(rawBody);
     message = parsed.message || JSON.stringify(parsed);
@@ -109,17 +114,18 @@ app.post("/esp_message", express.text({ type: "*/*" }), (req, res) => {
     message,
     timestamp: new Date().toISOString(),
   };
+
   messages.unshift(newMsg);
   if (messages.length > MAX_MESSAGES) messages.pop();
 
-  console.log("📡 Message ESP :", message);
+  console.log("📩 Message ESP reçu :", message);
   res.json({ success: true });
 });
 
-// 💾 Récupérer les messages
+// === 🔹 Liste des messages en mémoire ===
 app.get("/messages", (req, res) => res.json(messages));
 
-// 📊 Statut du serveur
+// === 🔹 Statut du serveur ===
 app.get("/status", async (req, res) => {
   try {
     const { rows } = await pool.query("SELECT COUNT(*) FROM commandes");
@@ -131,24 +137,22 @@ app.get("/status", async (req, res) => {
         (process.memoryUsage().heapUsed / 1024 / 1024).toFixed(2) + " MB",
       routes_disponibles: [
         "/home",
+        "/set_command",
         "/last_command",
         "/last_command_json",
-        "/set_command",
         "/esp_message",
         "/messages",
         "/status",
       ],
     });
   } catch (error) {
-    console.error("❌ Erreur /status :", error.message);
+    console.error("Erreur /status :", error.message);
     res.status(500).json({ success: false, error: error.message });
   }
 });
 
-// 🚫 Fallback
+// === 🔹 Fallback 404 ===
 app.use((req, res) => res.status(404).send("❌ Route introuvable"));
 
-// 🏁 Lancer le serveur
-app.listen(port, () =>
-  console.log(`🚀 Serveur IoT actif sur le port ${port}`)
-);
+// === 🔹 Lancement du serveur ===
+app.listen(port, () => console.log(`🚀 Serveur IoT actif sur le port ${port}`));
