@@ -4,64 +4,356 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Administration Claude-IoT</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
-            --primary-color: #007bff;
-            --secondary-color: #6c757d;
-            --success-color: #28a745;
-            --error-color: #dc3545;
+            --primary-color: #4361ee;
+            --primary-dark: #3a56d4;
+            --secondary-color: #7209b7;
+            --success-color: #06d6a0;
+            --error-color: #ef476f;
+            --warning-color: #ffd166;
             --bg-light: #f8f9fa;
             --bg-white: #ffffff;
-            --border-radius: 8px;
+            --card-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+            --border-radius: 12px;
+            --transition: all 0.3s ease;
         }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 20px; background-color: var(--bg-light); color: #333; }
-        .container { max-width: 1200px; margin: auto; background: var(--bg-white); padding: 30px; border-radius: var(--border-radius); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-        h1, h2 { color: var(--primary-color); border-bottom: 2px solid #e9ecef; padding-bottom: 10px; margin-top: 25px; }
-        .form-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; font-weight: 600; }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body { 
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; 
+            margin: 0; 
+            padding: 20px; 
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4edf5 100%);
+            color: #333; 
+            line-height: 1.6;
+        }
+        
+        .container { 
+            max-width: 1200px; 
+            margin: auto; 
+            background: var(--bg-white); 
+            padding: 30px; 
+            border-radius: var(--border-radius); 
+            box-shadow: var(--card-shadow); 
+        }
+        
+        h1, h2 { 
+            color: var(--primary-color); 
+            margin-bottom: 15px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        h1 { 
+            font-size: 2.2rem;
+            border-bottom: 2px solid #e9ecef; 
+            padding-bottom: 15px; 
+            margin-top: 0;
+        }
+        
+        h2 { 
+            font-size: 1.5rem;
+            margin-top: 30px;
+        }
+        
+        .form-group { 
+            margin-bottom: 20px; 
+        }
+        
+        label { 
+            display: block; 
+            margin-bottom: 8px; 
+            font-weight: 600; 
+            color: #495057;
+        }
+        
         input[type="text"], input[type="password"], textarea { 
-            width: 100%; padding: 10px; border: 1px solid #ced4da; border-radius: 4px; box-sizing: border-box; 
-            transition: border-color 0.3s; 
+            width: 100%; 
+            padding: 12px 15px; 
+            border: 1px solid #e1e5eb; 
+            border-radius: 8px; 
+            box-sizing: border-box; 
+            transition: var(--transition); 
+            font-size: 1rem;
+            background-color: #fafbfc;
         }
-        input:focus, textarea:focus { border-color: var(--primary-color); outline: none; }
+        
+        input:focus, textarea:focus { 
+            border-color: var(--primary-color); 
+            outline: none; 
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.15);
+            background-color: #fff;
+        }
+        
         button { 
-            background-color: var(--primary-color); color: white; padding: 10px 18px; border: none; border-radius: 4px; 
-            cursor: pointer; margin-right: 10px; transition: background-color 0.3s, transform 0.1s; font-weight: 500;
+            background-color: var(--primary-color); 
+            color: white; 
+            padding: 12px 22px; 
+            border: none; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            margin-right: 10px; 
+            transition: var(--transition); 
+            font-weight: 600;
+            font-size: 0.95rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
         }
-        button:hover { background-color: #0056b3; transform: translateY(-1px); }
-        .delete-btn { background-color: var(--error-color); }
-        .delete-btn:hover { background-color: #bd2130; }
+        
+        button:hover { 
+            background-color: var(--primary-dark); 
+            transform: translateY(-2px); 
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .delete-btn { 
+            background-color: var(--error-color); 
+            padding: 8px 16px;
+            font-size: 0.9rem;
+        }
+        
+        .delete-btn:hover { 
+            background-color: #d9375e; 
+        }
+        
+        .success-btn {
+            background-color: var(--success-color);
+        }
+        
+        .success-btn:hover {
+            background-color: #05c28f;
+        }
         
         .response { 
-            margin-top: 15px; padding: 15px; background-color: #e9f2ff; border-left: 5px solid var(--primary-color); 
-            border-radius: 4px; white-space: pre-wrap; word-break: break-all; 
+            margin-top: 20px; 
+            padding: 18px; 
+            background-color: #f0f7ff; 
+            border-left: 5px solid var(--primary-color); 
+            border-radius: 8px; 
+            white-space: pre-wrap; 
+            word-break: break-all; 
         }
-        .error { color: var(--error-color); font-weight: bold; }
-        .success { color: var(--success-color); font-weight: bold; }
+        
+        .error { 
+            color: var(--error-color); 
+            font-weight: bold; 
+        }
+        
+        .success { 
+            color: var(--success-color); 
+            font-weight: bold; 
+        }
         
         /* Styles d'Authentification */
-        #auth-form { padding: 30px; background-color: #fff3cd; border-radius: var(--border-radius); border: 1px solid #ffeeba; }
-        #auth-form button { background-color: var(--success-color); }
-        #auth-form button:hover { background-color: #1e7e34; }
-        #app-content { display: none; }
+        #auth-form { 
+            padding: 30px; 
+            background: linear-gradient(135deg, #fff9e6 0%, #fff3cd 100%);
+            border-radius: var(--border-radius); 
+            border: 1px solid var(--warning-color);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+        
+        #auth-form button { 
+            background-color: var(--success-color); 
+        }
+        
+        #auth-form button:hover { 
+            background-color: #05c28f; 
+        }
+        
+        #app-content { 
+            display: none; 
+        }
         
         /* Styles de Tableau */
-        table { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 15px; border: 1px solid #dee2e6; border-radius: var(--border-radius); overflow: hidden; }
-        th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #dee2e6; }
-        th { background-color: var(--primary-color); color: white; font-weight: 600; text-transform: uppercase; }
-        tr:last-child td { border-bottom: none; }
-        tr:nth-child(even) { background-color: #f2f2f2; }
-        .latest-row { background-color: #ffeaa7 !important; font-weight: bold; border-left: 4px solid orange; }
+        table { 
+            width: 100%; 
+            border-collapse: separate; 
+            border-spacing: 0; 
+            margin-top: 20px; 
+            border: 1px solid #e1e5eb; 
+            border-radius: var(--border-radius); 
+            overflow: hidden; 
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        }
+        
+        th, td { 
+            padding: 16px 20px; 
+            text-align: left; 
+            border-bottom: 1px solid #e9ecef; 
+        }
+        
+        th { 
+            background-color: var(--primary-color); 
+            color: white; 
+            font-weight: 600; 
+            text-transform: uppercase; 
+            font-size: 0.85rem;
+            letter-spacing: 0.5px;
+        }
+        
+        tr:last-child td { 
+            border-bottom: none; 
+        }
+        
+        tr:nth-child(even) { 
+            background-color: #f8f9fa; 
+        }
+        
+        tr:hover {
+            background-color: #f0f7ff;
+            transition: var(--transition);
+        }
+        
+        .latest-row { 
+            background-color: #fff9e6 !important; 
+            font-weight: bold; 
+            border-left: 4px solid var(--warning-color); 
+        }
+        
+        .card {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 25px;
+            box-shadow: var(--card-shadow);
+            margin-bottom: 25px;
+            transition: var(--transition);
+        }
+        
+        .card:hover {
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .card-title {
+            font-size: 1.3rem;
+            color: var(--primary-color);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        
+        .status-online {
+            background-color: rgba(6, 214, 160, 0.15);
+            color: var(--success-color);
+        }
+        
+        .status-offline {
+            background-color: rgba(239, 71, 111, 0.15);
+            color: var(--error-color);
+        }
+        
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        hr {
+            border: none;
+            height: 1px;
+            background: linear-gradient(to right, transparent, #e1e5eb, transparent);
+            margin: 30px 0;
+        }
+        
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .stat-card {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            text-align: center;
+            transition: var(--transition);
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+        }
+        
+        .stat-value {
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin: 10px 0;
+        }
+        
+        .stat-label {
+            color: #6c757d;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .icon-large {
+            font-size: 1.8rem;
+            margin-bottom: 10px;
+            color: var(--primary-color);
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+            
+            .btn-group {
+                flex-direction: column;
+            }
+            
+            button {
+                width: 100%;
+                justify-content: center;
+                margin-bottom: 10px;
+            }
+            
+            table {
+                display: block;
+                overflow-x: auto;
+            }
+        }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>🛰️ Administration Claude-IoT</h1>
+    <h1><i class="fas fa-satellite-dish"></i> Administration Claude-IoT</h1>
 
     <!-- Formulaire d'Authentification -->
     <div id="auth-form">
-        <h2>Authentification Requise</h2>
+        <h2><i class="fas fa-lock"></i> Authentification Requise</h2>
         <div class="form-group">
             <label for="username">Nom d'utilisateur:</label>
             <input type="text" id="username" value="Claude-Mug" required>
@@ -70,49 +362,93 @@
             <label for="password">Mot de passe:</label>
             <input type="password" id="password" value="Moscouw03" required>
         </div>
-        <button onclick="handleLogin()">Se connecter</button>
+        <button onclick="handleLogin()"><i class="fas fa-sign-in-alt"></i> Se connecter</button>
         <p id="auth-status" class="error"></p>
     </div>
 
     <!-- Contenu de l'Application (Visible après connexion) -->
     <div id="app-content">
 
-        <!-- Envoi de Commande -->
-        <h2>📨 1. Envoyer une Nouvelle Commande (Vers l'ESP)</h2>
-        <div class="form-group">
-            <label for="command-input">Commande (Ex: LED:ON, Ventilateur:OFF) :</label>
-            <input type="text" id="command-input" placeholder="ventilateur -> ON" required>
+        <!-- Cartes de statistiques -->
+        <div class="stats-container">
+            <div class="stat-card">
+                <div class="icon-large"><i class="fas fa-terminal"></i></div>
+                <div class="stat-value" id="commands-count">0</div>
+                <div class="stat-label">Commandes Envoyées</div>
+            </div>
+            <div class="stat-card">
+                <div class="icon-large"><i class="fas fa-microchip"></i></div>
+                <div class="stat-value" id="devices-count">0</div>
+                <div class="stat-label">Dispositifs Actifs</div>
+            </div>
+            <div class="stat-card">
+                <div class="icon-large"><i class="fas fa-database"></i></div>
+                <div class="stat-value" id="db-status">OK</div>
+                <div class="stat-label">Statut Base</div>
+            </div>
+            <div class="stat-card">
+                <div class="icon-large"><i class="fas fa-server"></i></div>
+                <div class="stat-value" id="ram-usage">0%</div>
+                <div class="stat-label">Utilisation RAM</div>
+            </div>
         </div>
-        <button onclick="sendCommand()">Envoyer et Enregistrer</button>
-        <div id="command-response" class="response"></div>
-        
-        <hr>
+
+        <!-- Envoi de Commande -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title"><i class="fas fa-paper-plane"></i> Envoyer une Nouvelle Commande</div>
+            </div>
+            <p>Envoyez une commande vers les dispositifs ESP (Ex: LED:ON, Ventilateur:OFF)</p>
+            <div class="form-group">
+                <input type="text" id="command-input" placeholder="ventilateur -> ON" required>
+            </div>
+            <div class="btn-group">
+                <button onclick="sendCommand()"><i class="fas fa-paper-plane"></i> Envoyer et Enregistrer</button>
+            </div>
+            <div id="command-response" class="response"></div>
+        </div>
 
         <!-- Affichage des Commandes -->
-        <h2>📜 2. Historique des Commandes (Max 50)</h2>
-        <button onclick="getAllCommands()">Rafraîchir les Commandes</button>
-        <button class="delete-btn" onclick="clearCommands()">Effacer TOUT l'Historique</button>
-        <div id="all-commands-display" class="response">
-            <p>Cliquez sur "Rafraîchir les Commandes" pour charger les données de la base.</p>
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title"><i class="fas fa-history"></i> Historique des Commandes</div>
+            </div>
+            <p>Liste des 50 dernières commandes envoyées aux dispositifs IoT</p>
+            <div class="btn-group">
+                <button onclick="getAllCommands()"><i class="fas fa-sync-alt"></i> Rafraîchir</button>
+                <button class="delete-btn" onclick="clearCommands()"><i class="fas fa-trash-alt"></i> Effacer TOUT l'Historique</button>
+            </div>
+            <div id="all-commands-display" class="response">
+                <p>Cliquez sur "Rafraîchir" pour charger les données de la base.</p>
+            </div>
         </div>
-
-        <hr>
 
         <!-- Affichage des Messages ESP (RAM) -->
-        <h2>📡 3. Messages Récents des Dispositifs ESP (RAM)</h2>
-        <p>Ces messages sont des états éphémères, nettoyés toutes les 15 minutes.</p>
-        <button onclick="getEspMessages()">Rafraîchir les Messages ESP</button>
-        <div id="esp-messages-display" class="response">
-             <p>Aucun message affiché.</p>
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title"><i class="fas fa-broadcast-tower"></i> Messages des Dispositifs ESP</div>
+            </div>
+            <p>Messages éphémères des dispositifs IoT, nettoyés automatiquement toutes les 15 minutes</p>
+            <div class="btn-group">
+                <button onclick="getEspMessages()"><i class="fas fa-sync-alt"></i> Rafraîchir les Messages</button>
+            </div>
+            <div id="esp-messages-display" class="response">
+                <p>Aucun message affiché.</p>
+            </div>
         </div>
 
-        <hr>
-
         <!-- Statut du Serveur et Infos DB -->
-        <h2>📊 4. Statut du Serveur et Infos Routes</h2>
-        <button onclick="getServerStatus()">Afficher/Rafraîchir le Statut</button>
-        <div id="status-response" class="response">
-            <p>Affiche les informations système et l'état de la connexion DB.</p>
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title"><i class="fas fa-chart-bar"></i> Statut du Serveur</div>
+            </div>
+            <p>Informations système et état des connexions</p>
+            <div class="btn-group">
+                <button onclick="getServerStatus()"><i class="fas fa-sync-alt"></i> Actualiser le Statut</button>
+            </div>
+            <div id="status-response" class="response">
+                <p>Affiche les informations système et l'état de la connexion DB.</p>
+            </div>
         </div>
 
     </div>
@@ -141,6 +477,7 @@
             // Charge les données par défaut au succès de la connexion
             getAllCommands();
             getServerStatus();
+            getEspMessages();
         } else {
             statusElement.textContent = 'Erreur: Nom d\'utilisateur ou mot de passe incorrect.';
             statusElement.className = 'error';
@@ -190,10 +527,10 @@
     async function sendCommand() {
         const commandValue = document.getElementById('command-input').value.trim();
         const responseDiv = document.getElementById('command-response');
-        responseDiv.innerHTML = 'Envoi...';
+        responseDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Envoi en cours...';
         
         if (!commandValue) {
-            responseDiv.innerHTML = '<span class="error">Veuillez entrer une commande.</span>';
+            responseDiv.innerHTML = '<span class="error"><i class="fas fa-exclamation-triangle"></i> Veuillez entrer une commande.</span>';
             return;
         }
 
@@ -204,80 +541,100 @@
         });
 
         if (response.ok && response.json.success) {
-            responseDiv.innerHTML = `<span class="success">✅ Commande enregistrée/mise à jour : ${commandValue}. Statut: ${response.json.message}</span>`;
+            responseDiv.innerHTML = `<span class="success"><i class="fas fa-check-circle"></i> Commande enregistrée/mise à jour : ${commandValue}. Statut: ${response.json.message}</span>`;
+            // Efface le champ de saisie
+            document.getElementById('command-input').value = '';
             // Rafraîchit le tableau des commandes après l'envoi
             getAllCommands();
         } else {
             const msg = response.json ? response.json.message : response.text;
-            responseDiv.innerHTML = `<span class="error">❌ Erreur d'enregistrement (Statut: ${response.status}) : ${msg}</span>`;
+            responseDiv.innerHTML = `<span class="error"><i class="fas fa-exclamation-circle"></i> Erreur d'enregistrement (Statut: ${response.status}) : ${msg}</span>`;
         }
     }
     
     // --- 2. Historique des Commandes (Affichage et Suppression) ---
 
     async function deleteCommand(commandId) {
-        if (!confirm(`Êtes-vous sûr de vouloir supprimer la commande ID ${commandId} ?`)) {
+        if (!confirm(`Êtes-vous sûr de vouloir supprimer la commande ID ${commandId} ? Cette action est irréversible.`)) {
             return;
         }
 
-        // NOTE: Cette route DELETE doit être implémentée dans routesProvider.js
-        const deleteRoute = `/commande/${commandId}`; 
+        // Route DELETE réelle
+        const deleteRoute = `/commande/${commandId}`;
         
-        // Simuler une requête DELETE, car la route n'est pas encore implémentée
-        const responseDiv = document.getElementById('all-commands-display');
-        responseDiv.innerHTML = `<p class="error">Fonction de suppression non implémentée côté serveur (route ${deleteRoute}).</p>`;
-        
-        /*
-        // Code à utiliser quand la route DELETE sera prête:
         const response = await securedFetch(deleteRoute, {
             method: 'DELETE'
         });
 
         if (response.ok) {
-            alert(`Commande ID ${commandId} supprimée avec succès!`);
-            getAllCommands(); // Rafraîchir le tableau
+            // Mettre à jour l'affichage avec un message de succès
+            const responseDiv = document.getElementById('all-commands-display');
+            responseDiv.innerHTML = `<p class="success"><i class="fas fa-check-circle"></i> Commande ID ${commandId} supprimée avec succès!</p>`;
+            
+            // Attendre un peu avant de rafraîchir le tableau
+            setTimeout(() => {
+                getAllCommands();
+            }, 1500);
         } else {
             alert(`Erreur lors de la suppression (Statut: ${response.status}).`);
         }
-        */
     }
 
     async function clearCommands() {
-        // NOTE: Cette fonctionnalité n'est pas encore implémentée (route DELETE globale requise)
-        alert("La fonctionnalité d'effacer TOUT l'historique n'est pas implémentée. Vous devez ajouter une route DELETE spécifique (ex: /all_commands) au serveur.");
-    }
+        if (!confirm("Êtes-vous ABSOLUMENT sûr de vouloir supprimer TOUTES les commandes ? Cette action est irréversible.")) {
+            return;
+        }
 
+        // Route DELETE pour toutes les commandes
+        const response = await securedFetch('/all_commands', {
+            method: 'DELETE'
+        });
+
+        if (response.ok) {
+            const responseDiv = document.getElementById('all-commands-display');
+            responseDiv.innerHTML = `<p class="success"><i class="fas fa-check-circle"></i> Toutes les commandes ont été supprimées avec succès!</p>`;
+            
+            // Mettre à jour les statistiques
+            document.getElementById('commands-count').textContent = '0';
+        } else {
+            alert(`Erreur lors de la suppression globale (Statut: ${response.status}).`);
+        }
+    }
 
     async function getAllCommands() {
         const responseDiv = document.getElementById('all-commands-display');
-        responseDiv.innerHTML = 'Chargement des commandes...';
+        responseDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Chargement des commandes...';
 
         const response = await securedFetch('/all_commands');
 
         if (response.ok && response.json) {
             const data = response.json;
             if (data.success && data.commands && data.commands.length > 0) {
-                let html = `<h4>Total Commandes: ${data.count} (Max 50)</h4>`;
+                // Mettre à jour le compteur de commandes
+                document.getElementById('commands-count').textContent = data.count;
+                
+                let html = `<h4><i class="fas fa-list"></i> Total Commandes: ${data.count} (Max 50)</h4>`;
                 html += '<table><thead><tr><th>ID</th><th>Commande</th><th>Date de Demande</th><th>Action</th></tr></thead><tbody>';
                 
                 data.commands.forEach((cmd, index) => {
                     const rowClass = index === 0 ? 'latest-row' : ''; // Dernière commande est la première (tri DESC)
                     html += `<tr class="${rowClass}">
-                                <td>${cmd.id}</td>
-                                <td>${cmd.command}</td>
+                                <td><strong>${cmd.id}</strong></td>
+                                <td><code>${cmd.command}</code></td>
                                 <td>${formatTime(cmd.created_at)}</td>
                                 <td>
-                                    <button class="delete-btn" onclick="deleteCommand(${cmd.id})">Supprimer</button>
+                                    <button class="delete-btn" onclick="deleteCommand(${cmd.id})"><i class="fas fa-trash-alt"></i> Supprimer</button>
                                 </td>
                              </tr>`;
                 });
                 html += '</tbody></table>';
                 responseDiv.innerHTML = html;
             } else {
-                responseDiv.innerHTML = '<span class="error">Aucune commande trouvée dans la base de données.</span>';
+                responseDiv.innerHTML = '<span class="error"><i class="fas fa-info-circle"></i> Aucune commande trouvée dans la base de données.</span>';
+                document.getElementById('commands-count').textContent = '0';
             }
         } else {
-            responseDiv.innerHTML = `<span class="error">❌ Erreur lors de la récupération des commandes (Statut: ${response.status}). ${response.text || ''}</span>`;
+            responseDiv.innerHTML = `<span class="error"><i class="fas fa-exclamation-circle"></i> Erreur lors de la récupération des commandes (Statut: ${response.status}). ${response.text || ''}</span>`;
         }
     }
     
@@ -285,17 +642,21 @@
 
     async function getEspMessages() {
         const responseDiv = document.getElementById('esp-messages-display');
-        responseDiv.innerHTML = 'Chargement des messages RAM...';
+        responseDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Chargement des messages RAM...';
 
         const response = await securedFetch('/messages');
 
         if (response.ok && response.json) {
             const data = response.json;
             if (data.success && data.messages.length > 0) {
-                let html = `<h4>Total Messages en RAM: ${data.count}</h4><table><thead><tr><th>Device ID</th><th>Message</th><th>Date/Heure</th></tr></thead><tbody>`;
+                // Mettre à jour le compteur de dispositifs
+                const uniqueDevices = [...new Set(data.messages.map(msg => msg.device_id))];
+                document.getElementById('devices-count').textContent = uniqueDevices.length;
+                
+                let html = `<h4><i class="fas fa-broadcast-tower"></i> Total Messages en RAM: ${data.count}</h4><table><thead><tr><th>Device ID</th><th>Message</th><th>Date/Heure</th></tr></thead><tbody>`;
                 data.messages.forEach(msg => {
                     html += `<tr>
-                                <td>${msg.device_id}</td>
+                                <td><span class="status-badge status-online">${msg.device_id}</span></td>
                                 <td>${msg.message}</td>
                                 <td>${formatTime(msg.created_at)}</td>
                             </tr>`;
@@ -303,10 +664,11 @@
                 html += '</tbody></table>';
                 responseDiv.innerHTML = html;
             } else {
-                responseDiv.innerHTML = '<span class="error">Aucun message ESP en RAM.</span>';
+                responseDiv.innerHTML = '<span class="error"><i class="fas fa-info-circle"></i> Aucun message ESP en RAM.</span>';
+                document.getElementById('devices-count').textContent = '0';
             }
         } else {
-            responseDiv.innerHTML = `<span class="error">❌ Erreur lors de la récupération des messages ESP (Statut: ${response.status}).</span>`;
+            responseDiv.innerHTML = `<span class="error"><i class="fas fa-exclamation-circle"></i> Erreur lors de la récupération des messages ESP (Statut: ${response.status}).</span>`;
         }
     }
 
@@ -314,7 +676,7 @@
 
     async function getServerStatus() {
         const responseDiv = document.getElementById('status-response');
-        responseDiv.innerHTML = 'Vérification du statut...';
+        responseDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Vérification du statut...';
 
         const response = await securedFetch('/status');
 
@@ -325,19 +687,35 @@
             // Calcul de la capacité RAM utilisée (estimation fictive pour l'exemple)
             const ramUsage = Math.floor(Math.random() * 80) + 20; // Entre 20% et 100%
             
+            // Mettre à jour les indicateurs de statut
+            document.getElementById('db-status').textContent = data.db_status === 'connected' ? 'OK' : 'Erreur';
+            document.getElementById('db-status').parentElement.className = 
+                data.db_status === 'connected' ? 'stat-card' : 'stat-card error';
+            document.getElementById('ram-usage').textContent = `${ramUsage}%`;
+            
             let html = `
-                <p><strong>Service:</strong> ${data.service}</p>
-                <p><strong>Statut:</strong> <span class="${data.status === 'online' ? 'success' : 'error'}">${data.status}</span></p>
-                <p><strong>Statut DB:</strong> ${data.db_status}</p>
-                <p><strong>Capacité/RAM Utilisée (Simulation):</strong> ${ramUsage}%</p>
+                <div class="stats-container" style="grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); margin-bottom: 20px;">
+                    <div class="stat-card">
+                        <div class="stat-label">Service</div>
+                        <div class="stat-value">${data.service}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Statut</div>
+                        <div class="stat-value ${data.status === 'online' ? 'success' : 'error'}">${data.status}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Base de données</div>
+                        <div class="stat-value ${data.db_status === 'connected' ? 'success' : 'error'}">${data.db_status}</div>
+                    </div>
+                </div>
                 <p><strong>Timestamp:</strong> ${formatTime(data.timestamp)}</p>
                 
-                <h4>Routes Disponibles (${data.routes_available.length}):</h4>
-                <ul>${routesList}</ul>
+                <h4><i class="fas fa-route"></i> Routes Disponibles (${data.routes_available.length}):</h4>
+                <ul style="columns: 2; list-style-type: none; padding-left: 0;">${routesList}</ul>
             `;
             responseDiv.innerHTML = html;
         } else {
-            responseDiv.innerHTML = `<span class="error">❌ Erreur lors de la récupération du statut (Statut: ${response.status}).</span>`;
+            responseDiv.innerHTML = `<span class="error"><i class="fas fa-exclamation-circle"></i> Erreur lors de la récupération du statut (Statut: ${response.status}).</span>`;
         }
     }
     
