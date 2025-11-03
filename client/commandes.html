@@ -94,8 +94,7 @@
             setRoutes(routesData.routes);
 
             // Calcul mémoire utilisée côté navigateur (simple approximation)
-            const memUsed =
-              (performance.memory?.usedJSHeapSize || 0) / 1024 / 1024;
+            const memUsed = (performance.memory && performance.memory.usedJSHeapSize ? performance.memory.usedJSHeapSize : 0) / 1024 / 1024;
 
             setStats({
               total: cmdData.length,
